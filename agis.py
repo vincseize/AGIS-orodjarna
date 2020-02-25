@@ -24,9 +24,14 @@
 from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction, QMenu
+from qgis.core import QgsProcessingAlgorithm, QgsApplication
 
 # Initialize Qt resources from file resources.py
 from .resources import *
+
+#import processing provider
+from .processing_provider.provider import Provider 
+
 # Import the code for the dialog
 
 from .agis_loader.agis_load import ArheoloskiGisLoad
@@ -65,6 +70,8 @@ class ArheoloskiGis:
         self.actions = []
         self.menu = self.tr('AGIS')
 		
+        self.provider = Provider()
+
 		#Create custom menu
         self.AGIS_Menu = QMenu(self.menu)
 		
@@ -145,6 +152,8 @@ class ArheoloskiGis:
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
 
+        QgsApplication.processingRegistry().addProvider(self.provider)
+        
         icon_path = ':/plugins/agis/icons/icon.png'
         
         # will be set False in run()
