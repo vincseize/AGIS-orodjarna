@@ -30,6 +30,8 @@ from ..resources import *
 # Import the code for the dialog
 from .agis_load_dialog import ArheoloskiGisLoadDialog
 import os.path
+from pathlib import Path
+from ..externals import path
 
 
 class ArheoloskiGisLoad:
@@ -61,7 +63,8 @@ class ArheoloskiGisLoad:
 
         self.dlg = ArheoloskiGisLoadDialog()
         #self.dlg.pushButton.clicked.connect(self.dlg.close)
-        self.dlg.label_2.setPixmap(QPixmap(":/plugins/agis/icons/loader_logo.png"))
+        logo_path = path('icons')/"loader_logo_small"
+        self.dlg.label_2.setPixmap(QPixmap(str(logo_path)))
         # Declare instance attributes
         self.actions = []
         self.first_start = None

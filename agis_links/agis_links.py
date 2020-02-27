@@ -30,6 +30,8 @@ from ..resources import *
 # Import the code for the dialog
 from .agis_links_dialog import ArheoloskiGisLinksDialog
 import os.path
+from pathlib import Path
+from ..externals import path
 
 
 class ArheoloskiGisLinks:
@@ -60,7 +62,8 @@ class ArheoloskiGisLinks:
             QCoreApplication.installTranslator(self.translator)
 
         self.dlg = ArheoloskiGisLinksDialog()
-        self.dlg.label_1.setPixmap(QPixmap(":/plugins/agis/icons/loader_logo.png"))
+        logo_path = path('icons')/"loader_logo_small"
+        self.dlg.label_1.setPixmap(QPixmap(str(logo_path)))
         self.dlg.pushButton.clicked.connect(self.dlg.close)
 
         # Declare instance attributes
