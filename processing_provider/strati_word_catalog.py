@@ -36,12 +36,11 @@ import sys
 import os
 
 from ..externals import path, checkDuplicates, value_error
+from pathlib import Path
+
 
 try:
     import docx
-    from docx import Document
-    from docx import Document
-    from docx import Document
     from docx import Document
     from docx.shared import Pt
     from docx.enum.style import WD_STYLE_TYPE

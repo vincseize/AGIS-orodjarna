@@ -10,6 +10,7 @@ def path(item):
     path['plugin'] = Path(plugin_dir)
     path['styles'] = path['plugin']/"styles"
     path['icons'] = path['plugin']/"icons"
+    path['dependencies'] = path['plugin']/"dependencies"
     path = path[item]
     return path
 

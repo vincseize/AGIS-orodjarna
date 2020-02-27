@@ -24,13 +24,15 @@
 """
 import os
 import site
+from pathlib import Path
+from .externals import path
 
-site.addsitedir(os.path.abspath(os.path.dirname(__file__) + '/dependencies'))
+dependencies_path = path('dependencies')
+site.addsitedir(str(dependencies_path))
 
 # noinspection PyPep8Naming
 def classFactory(iface):  # pylint: disable=invalid-name
     """Load ArheoloskiGis class from file ArheoloskiGis.
-
     :param iface: A QGIS interface instance.
     :type iface: QgsInterface
     """
