@@ -6,12 +6,12 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>466</width>
-    <height>383</height>
+    <width>454</width>
+    <height>250</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Dialog</string>
+   <string>Uporabne povezave</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
    <item row="0" column="1">
@@ -31,11 +31,18 @@
       </font>
      </property>
      <property name="text">
-      <string>Uporabne povezave</string>
+      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Uporabne povezave&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
      </property>
     </widget>
    </item>
-   <item row="1" column="0" colspan="2">
+   <item row="3" column="1" colspan="2">
+    <widget class="QPushButton" name="pushButton">
+     <property name="text">
+      <string>Zapri</string>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="0" colspan="3">
     <widget class="QScrollArea" name="scrollArea_2">
      <property name="widgetResizable">
       <bool>true</bool>
@@ -45,8 +52,8 @@
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>444</width>
-        <height>299</height>
+        <width>432</width>
+        <height>166</height>
        </rect>
       </property>
       <layout class="QVBoxLayout" name="verticalLayout_3">
@@ -109,10 +116,16 @@ p, li { white-space: pre-wrap; }
      </widget>
     </widget>
    </item>
-   <item row="2" column="1">
-    <widget class="QPushButton" name="pushButton">
+   <item row="0" column="2">
+    <widget class="QLabel" name="label_1">
      <property name="text">
-      <string>Zapri</string>
+      <string/>
+     </property>
+     <property name="pixmap">
+      <pixmap>../icons/loader_logo.png</pixmap>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignCenter</set>
      </property>
     </widget>
    </item>

@@ -22,7 +22,7 @@
  ***************************************************************************/
 """
 from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication
-from qgis.PyQt.QtGui import QIcon
+from qgis.PyQt.QtGui import QIcon, QPixmap
 from qgis.PyQt.QtWidgets import QAction, QMenu
 
 # Initialize Qt resources from file resources.py
@@ -60,12 +60,13 @@ class ArheoloskiGisLinks:
             QCoreApplication.installTranslator(self.translator)
 
         self.dlg = ArheoloskiGisLinksDialog()
+        self.dlg.label_1.setPixmap(QPixmap(":/plugins/agis/icons/loader_logo.png"))
         self.dlg.pushButton.clicked.connect(self.dlg.close)
-      
+
         # Declare instance attributes
         self.actions = []
 
-    
+
     # noinspection PyMethodMayBeStatic
     def tr(self, message):
         """Get the translation for a string using Qt translation API.
@@ -186,6 +187,3 @@ class ArheoloskiGisLinks:
         self.dlg.show()
         # Run the dialog event loop
         self.dlg.exec_()
-
-
-    

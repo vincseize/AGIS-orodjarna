@@ -25,26 +25,25 @@ from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction, QMenu
 from qgis.core import QgsProcessingAlgorithm, QgsApplication
+import os.path
+
 
 # Initialize Qt resources from file resources.py
 from .resources import *
 
+from .externals import path
+
 #import processing provider
-from .processing_provider.provider import Provider 
+from .processing_provider.provider import Provider
 
 # Import the code for the dialog
-
 from .agis_loader.agis_load import ArheoloskiGisLoad
 from .agis_links.agis_links import ArheoloskiGisLinks
-import os.path
-
 
 class ArheoloskiGis:
     """QGIS Plugin Implementation."""
-
     def __init__(self, iface):
         """Constructor.
-
         :param iface: An interface instance that will be passed to this class
             which provides the hook by which you can manipulate the QGIS
             application at run time.
@@ -69,32 +68,31 @@ class ArheoloskiGis:
         # Declare instance attributes
         self.actions = []
         self.menu = self.tr('AGIS')
-		
+
         self.provider = Provider()
 
 		#Create custom menu
         self.AGIS_Menu = QMenu(self.menu)
-		
+
 		#Create sub menus
         #self.Sub_Menu = QMenu("Pre-Processor")
         #self.AGIS_Menu.addMenu(self.Sub_Menu)
-
 
         #Add tools to menus, actions..
         self.Load_agis = QAction(QIcon(":/plugins/agis/icons/icon_load.png"),self.tr("Naloži sloje"), self.iface.mainWindow())
         self.AGIS_Menu.addAction(self.Load_agis)
         self.Load_agis.triggered.connect(self.Loadagis)
-        
+
         self.Links_agis = QAction(QIcon(":/plugins/agis/icons/icon_links.png"),self.tr("Uporabne povezave"), self.iface.mainWindow())
         self.AGIS_Menu.addAction(self.Links_agis)
         self.Links_agis.triggered.connect(self.link)
-        
+
         self.iface.mainWindow().menuBar().insertMenu(self.iface.firstRightStandardMenu().menuAction(), self.AGIS_Menu)
 
         # Check if plugin was started the first time in current QGIS session
         # Must be set in initGui() to survive plugin reloads
         self.first_start = None
-    
+
     # noinspection PyMethodMayBeStatic
     def tr(self, message):
         """Get the translation for a string using Qt translation API.
@@ -122,13 +120,12 @@ class ArheoloskiGis:
         status_tip=None,
         whats_this='aaa',
         parent=None):
-       
-        
+
         icon = QIcon(icon_path)
         action = QAction(icon, text, parent)
         action.triggered.connect(callback)
         action.setEnabled(enabled_flag)
-        
+
         if status_tip is not None:
             action.setStatusTip(status_tip)
 
@@ -145,7 +142,6 @@ class ArheoloskiGis:
                 action)
         """
         self.actions.append(action)
-        
         return action
 
 
@@ -153,19 +149,19 @@ class ArheoloskiGis:
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
 
         QgsApplication.processingRegistry().addProvider(self.provider)
-        
-        icon_path = ':/plugins/agis/icons/icon.png'
-        
+
+        icon_path = ':/plugins/agis/icons/agis_logo.png'
+
         # will be set False in run()
         self.first_start = True
-		
+
         self.add_action(
             ':/plugins/agis/icons/icon_load.png',
             text=self.tr(u'&Naloži sloje'),
             callback=self.Loadagis,
-            parent=self.iface.mainWindow())   
+            parent=self.iface.mainWindow())
 
-      
+
 
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""
@@ -177,14 +173,14 @@ class ArheoloskiGis:
             self.iface.removePluginMenu(
                 self.tr(u'&Naloži sloje'),
                 action)
-				
+
     def run(self):
         """Run method that performs all the real work"""
         # Create the dialog with elements (after translation) and keep reference
         # Only create GUI ONCE in callback, so that it will only load when the plugin is started
         if self.first_start == True:
             self.first_start = False
-     
+
 
     def link(self):
         ld = ArheoloskiGisLinks(self.iface)

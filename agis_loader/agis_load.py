@@ -61,11 +61,11 @@ class ArheoloskiGisLoad:
 
         self.dlg = ArheoloskiGisLoadDialog()
         #self.dlg.pushButton.clicked.connect(self.dlg.close)
-        self.dlg.label_3.setPixmap(QPixmap(":/plugins/agis/icons/icon.png"))
+        self.dlg.label_2.setPixmap(QPixmap(":/plugins/agis/icons/loader_logo.png"))
         # Declare instance attributes
         self.actions = []
         self.first_start = None
- 
+
     # noinspection PyMethodMayBeStatic
     def tr(self, message):
         """Get the translation for a string using Qt translation API.
@@ -137,7 +137,7 @@ class ArheoloskiGisLoad:
         action.triggered.connect(callback)
         action.setEnabled(enabled_flag)
 
-        
+
 
         if status_tip is not None:
             action.setStatusTip(status_tip)
@@ -148,9 +148,9 @@ class ArheoloskiGisLoad:
         if add_to_toolbar:
             # Adds plugin icon to Plugins toolbar
             self.iface.addToolBarIcon(action)
-        
-        
-       
+
+
+
         if add_to_menu:
             self.iface.addPluginToMenu(
                 self.menu,
@@ -170,7 +170,7 @@ class ArheoloskiGisLoad:
             callback=self.run,
             parent=self.iface.mainWindow())
         # will be set False in run()
-   
+
         self.first_start = True
 
     def unload(self):
@@ -185,7 +185,7 @@ class ArheoloskiGisLoad:
     def run(self):
         """Run method that performs all the real work"""
         if self.first_start == True:
-            self.first_start = False  
+            self.first_start = False
         self.iface.messageBar().pushMessage("Showing URL")
         # show the dialog
         self.dlg.show()

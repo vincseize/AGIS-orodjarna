@@ -27,7 +27,7 @@ tags=python, archaeology
 
 homepage=https://github.com/matjash/AGIS
 category=AGIS
-icon=icon.png
+icon=icons/agis_logo.png
 # experimental flag
 experimental=False
 
@@ -44,4 +44,3 @@ Category of the plugin: Raster, Vector, Database or Web
 
 # If the plugin can run on QGIS Server.
 server=False
-
