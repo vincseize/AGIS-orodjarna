@@ -6,7 +6,7 @@ from pathlib import Path
 #import algorithm
 #from .fileslist import Files2Table
 #from .katvkat import IzvoziKatalogVWord
-#from .se_catalog import IzvoziKatalogSeVWord
+from .se_dmv import se_dmv
 from .seznam_parcel import SeznamParcelZnotrajObmojaRaziskave
 from ..externals import path
 
@@ -16,8 +16,9 @@ class Provider(QgsProcessingProvider):
         QgsProcessingProvider.__init__(self)
         
     def loadAlgorithms(self, *args, **kwargs):
+        
         #self.addAlgorithm(Files2Table())
-        #self.addAlgorithm(IzvoziKatalogVWord())
+        self.addAlgorithm(se_dmv())
         self.addAlgorithm(SeznamParcelZnotrajObmojaRaziskave())
         # add additional algorithms here
         # self.addAlgorithm(MyOtherAlgorithm())

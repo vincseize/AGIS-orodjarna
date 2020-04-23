@@ -28,10 +28,8 @@ import site
 # noinspection PyPep8Naming
 def classFactory(iface):  # pylint: disable=invalid-name
     """Load ArheoloskiGisToolbox class from file ArheoloskiGisToolbox.
-
     :param iface: A QGIS interface instance.
     :type iface: QgsInterface
     """
-    #
     from .agis_toolbox import ArheoloskiGisToolbox
     return ArheoloskiGisToolbox(iface)

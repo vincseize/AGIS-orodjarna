@@ -6,11 +6,18 @@ from qgis.core import (QgsProject
 def path(item):
     path = {}
     plugin_dir = os.path.dirname(__file__)
-
     path['plugin'] = Path(plugin_dir)
     path['styles'] = path['plugin']/"styles"
     path['icons'] = path['plugin']/"icons"
+
+    path['project_path'] = Path(QgsProject.instance().homePath()).parents[0]
+
+    path = path[item]
     return path
+
+
+
+
 
 # Checks duplicates and returnes value error
 def checkDuplicates(features, name, feedback):
