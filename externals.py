@@ -9,9 +9,8 @@ def path(item):
     path['plugin'] = Path(plugin_dir)
     path['styles'] = path['plugin']/"styles"
     path['icons'] = path['plugin']/"icons"
-
-    path['project_path'] = Path(QgsProject.instance().homePath()).parents[0]
-
+    
+  
     path = path[item]
     return path
 

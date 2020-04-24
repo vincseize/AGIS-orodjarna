@@ -25,10 +25,11 @@ from qgis.core import (QgsProject,
                        QgsProcessingParameterFeatureSink,
                        QgsProcessingParameterRasterDestination,
                        QgsProcessingMultiStepFeedback,
-                       QgsRasterLayer)
+                       QgsRasterLayer,
+                       QgsVectorLayer)
 from qgis import processing
 from ..externals import path
-
+from pathlib import Path
 class se_dmv(QgsProcessingAlgorithm):
     """
     This is an example algorithm that takes a vector layer and
@@ -113,29 +114,38 @@ class se_dmv(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterVectorLayer(
                 'se_polygons', 
-                'meje SE', 
+                self.tr('meje SE'), 
                 types=[QgsProcessing.TypeVectorPolygon], defaultValue=None
                 )
             )
 
-
-        default_folder = path('project_path')/'Fotoskice'
+        try:
+            default_in_older = Path(QgsProject.instance().homePath()).parents[0]/self.tr('Fotoskice')
+        except:
+            default_in_older = ''
+        
         self.addParameter(
             QgsProcessingParameterFile(
-                'raster_folder', 
-                'Mapa z FS', 
+                'raster_in', 
+                self.tr('Folder with rasters'), 
                 behavior=QgsProcessingParameterFile.Folder, 
                 fileFilter='All files (*.*)', 
-                defaultValue= str(default_folder)
+                defaultValue= str(default_in_older)
                 )
             )
 
+        try:
+            default_out_folder = Path(QgsProject.instance().homePath())/self.tr('SE površine')
+        except:
+            default_out_folder = ''
+
         self.addParameter(
-            QgsProcessingParameterRasterDestination(
-                'Raster_ven', 
-                'raster_ven', 
-                createByDefault=True, 
-                defaultValue=None
+            QgsProcessingParameterFile(
+                'raster_out', 
+                self.tr('Output folder for SU surfaces'), 
+                behavior=QgsProcessingParameterFile.Folder, 
+                fileFilter='All files (*.*)', 
+                defaultValue= str(default_out_folder)
                 )
             )
 
@@ -179,11 +189,17 @@ class se_dmv(QgsProcessingAlgorithm):
         
         rasters_folder = self.parameterAsFile(
             parameters,
-            'raster_folder',
+            'raster_in',
             context
         )
         
-  
+        rasters_out_folder = self.parameterAsFile(
+            parameters,
+            'raster_out',
+            context
+        )
+        
+
         # Temp
         results = {}
         outputs = {}
@@ -195,74 +211,76 @@ class se_dmv(QgsProcessingAlgorithm):
                 'OUTPUT': 'memory:'
             }, context=context)['OUTPUT']
         
-        feedback.pushInfo(self.tr('Geometry fixed.'))
+        feedback.pushDebugInfo(self.tr('Geometry fixed.'))
         feedback.setCurrentStep(1)
         if feedback.isCanceled():
             return {}
 
 
-        def call_raster():
-            feedback.pushInfo(str(rasters_folder))
-        call_raster()
 
-
-
-        #Get unique values of "vir meritve" values
-        values = se_polygons.fields().indexOf('vir meritev')
-        sources = se_polygons.uniqueValues(se_polygons.fields().indexOf('vir meritev'))
-     
-        default_raster = path('project_path')/'Fotoskice/FS 1001/FS 1001_dem.tif'
-        layer = QgsRasterLayer(str(default_raster), 'sss')
-        def StringToRaster(raster):
-            # Check if string is provided
-            feedback.pushInfo(str(default_raster))
-            fileInfo = QFileInfo(raster)
-            path = fileInfo.filePath()
-            feedback.pushInfo(str(path))
-            baseName = fileInfo.baseName()
-            feedback.pushInfo(str(baseName))
-            layer = QgsRasterLayer(path, baseName)
-            QgsProject.instance().addMapLayer(layer)
-            if layer.isValid() is True:
-                feedback.pushInfo("Layer was loaded successfully!")
-            else:
-                feedback.pushInfo("Unable to read basename and file path - Your string is probably invalid")
-            return layer
-
+        #Create rasters output directory
+        if Path(rasters_out_folder).exists():
+            feedback.pushDebugInfo('Output directory exists: %s' % rasters_out_folder)
+        else:
+            Path(rasters_out_folder).mkdir(parents=True, exist_ok=True)
+            feedback.pushDebugInfo(self.tr('Creating output directory: %s' % rasters_out_folder))
+            
       
+        #Get unique values of "vir meritve" values
+        values = se_polygons.fields().indexOf(self.tr('vir meritev'))
+        sources = se_polygons.uniqueValues(se_polygons.fields().indexOf(self.tr('vir meritev')))
+        feedback.pushDebugInfo(str(sources))
+  
+        #Get list of raster sources
+        fotoskice_list = [''.join(filter(lambda x: x.isdigit(), f.name)) for f in Path(rasters_folder).iterdir() if f.is_dir()]
+ 
+        #Check for missing data
+        missing_rasters = [f for f in sources if f not in fotoskice_list ]
+        feedback.reportError(self.tr('Missing rasters:'))
+        feedback.reportError(str(missing_rasters))
+
+        drape_errors = []
+        no_source = []
+        feedback.reportError(self.tr('Vse ok do sem'))
+        feedback.pushDebugInfo(self.tr('Vse ok do sem'))
+    
+        (sink, feat) = self.parameterAsSink(
+                    parameters,
+                    self.OUTPUT,
+                    context,
+                    se_polygons.fields(),
+                    se_polygons.wkbType(),
+                    se_polygons.sourceCrs()
+                )     
+
         for feature in se_polygons.getFeatures():
-            if str(feature['vir meritev']).isdigit():
-                feedback.pushInfo(str(feature['vir meritev']))
-                #Drape (set Z value from raster)
-                draped_feature = processing.run("native:setzfromraster", {
-                    'BAND': 1,
-                    'INPUT': feature,
-                    'NODATA': 0,
-                    'RASTER': default_raster,
-                    'SCALE': 1,
-                    'OUTPUT': 'memory'
-                }, context=context)['OUTPUT']
-                source = draped_feature
+            if str(feature['vir meritev']).isdigit():   
+                sink.addFeature(feature, QgsFeatureSink.FastInsert)
+                #Get raster dem
+                raster_path = [f for f in Path(rasters_folder).glob('**/*dem.tif') if ''.join(filter(lambda x: x.isdigit(), f.name)) == str(feature['vir meritev'])]
+                try:
+                    layer = QgsRasterLayer(str(raster_path[0]), 'sda')
+                    layer.setCrs(se_polygons.sourceCrs())    
+                    #Drape (set Z value from raster)
+                    source = processing.run("native:setzfromraster", {
+                        'BAND': 1,
+                        'INPUT': feat,
+                        'NODATA': 0,
+                        'RASTER': layer,
+                        'SCALE': 1,
+                        'OUTPUT': 'memory:'
+                    }, context=context)['OUTPUT']                                                       
+                except:
+                    drape_errors.append(str(feature['vir meritev']))           
             else:
-                feedback.pushInfo("Ta ne gre:")
-                feedback.pushInfo(str(feature['vir meritev']))
+                no_source.append(str(feature['vir meritev']))  
+               
         
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                
+ 
+        feedback.pushInfo(self.tr('Source errors: %s')  %str(no_source))
+        feedback.reportError(self.tr('Drape errors: %s')  %str(drape_errors))
         """
+        
         feedback.setCurrentStep(2)
         if feedback.isCanceled():
             return {}
@@ -294,14 +312,6 @@ class se_dmv(QgsProcessingAlgorithm):
 
 
 
-
-
-
-
-
-
-
-
        
         # If source was not found, throw an exception to indicate that the algorithm
         # encountered a fatal error. The exception text can be any string, but in this
@@ -309,7 +319,7 @@ class se_dmv(QgsProcessingAlgorithm):
         # helper text for when a source cannot be evaluated
         if source is None:
             raise QgsProcessingException(self.invalidSourceError(parameters, self.INPUT))
-
+        
         (sink, dest_id) = self.parameterAsSink(
             parameters,
             self.OUTPUT,
@@ -318,7 +328,7 @@ class se_dmv(QgsProcessingAlgorithm):
             source.wkbType(),
             source.sourceCrs()
         )
-
+        
         # Send some information to the user
         feedback.pushInfo('CRS is {}'.format(source.sourceCrs().authid()))
 
@@ -369,3 +379,5 @@ class se_dmv(QgsProcessingAlgorithm):
         # dictionary, with keys matching the feature corresponding parameter
         # or output names.
         return {self.OUTPUT: dest_id}
+
+
