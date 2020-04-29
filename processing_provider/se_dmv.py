@@ -11,7 +11,8 @@
 ***************************************************************************
 """
 
-from qgis.PyQt.QtCore import QCoreApplication, QFileInfo
+from qgis.PyQt.QtCore import QCoreApplication, QFileInfo, QVariant
+
 from qgis.core import (QgsProject,
                        QgsProcessing,
                        QgsFeatureSink,
@@ -26,7 +27,10 @@ from qgis.core import (QgsProject,
                        QgsProcessingParameterRasterDestination,
                        QgsProcessingMultiStepFeedback,
                        QgsRasterLayer,
-                       QgsVectorLayer)
+                       QgsVectorLayer,
+                       QgsFeatureRequest,
+                       QgsField,
+                       QgsCoordinateReferenceSystem)
 from qgis import processing
 from ..externals import path
 from pathlib import Path
@@ -112,7 +116,7 @@ class se_dmv(QgsProcessingAlgorithm):
         """
 
         self.addParameter(
-            QgsProcessingParameterVectorLayer(
+            QgsProcessingParameterFeatureSource(
                 'se_polygons', 
                 self.tr('meje SE'), 
                 types=[QgsProcessing.TypeVectorPolygon], defaultValue=None
@@ -181,12 +185,7 @@ class se_dmv(QgsProcessingAlgorithm):
         # to uniquely identify the feature sink, and must be included in the
         # dictionary returned by the processAlgorithm function.
         
-        se_polygons = self.parameterAsVectorLayer(
-            parameters,
-            'se_polygons',
-            context
-        )
-        
+ 
         rasters_folder = self.parameterAsFile(
             parameters,
             'raster_in',
@@ -207,7 +206,7 @@ class se_dmv(QgsProcessingAlgorithm):
 
         #Fix geometries
         se_polygons = processing.run("native:fixgeometries", {
-                'INPUT': se_polygons,
+                'INPUT': parameters['se_polygons'],
                 'OUTPUT': 'memory:'
             }, context=context)['OUTPUT']
         
@@ -216,16 +215,6 @@ class se_dmv(QgsProcessingAlgorithm):
         if feedback.isCanceled():
             return {}
 
-
-
-        #Create rasters output directory
-        if Path(rasters_out_folder).exists():
-            feedback.pushDebugInfo('Output directory exists: %s' % rasters_out_folder)
-        else:
-            Path(rasters_out_folder).mkdir(parents=True, exist_ok=True)
-            feedback.pushDebugInfo(self.tr('Creating output directory: %s' % rasters_out_folder))
-            
-      
         #Get unique values of "vir meritve" values
         values = se_polygons.fields().indexOf(self.tr('vir meritev'))
         sources = se_polygons.uniqueValues(se_polygons.fields().indexOf(self.tr('vir meritev')))
@@ -239,28 +228,47 @@ class se_dmv(QgsProcessingAlgorithm):
         feedback.reportError(self.tr('Missing rasters:'))
         feedback.reportError(str(missing_rasters))
 
+        #Create rasters output directory
+        if Path(rasters_out_folder).exists():
+            feedback.pushDebugInfo('Output directory exists: %s' % rasters_out_folder)
+        else:
+            Path(rasters_out_folder).mkdir(parents=True, exist_ok=True)
+            feedback.pushDebugInfo(self.tr('Creating output directory: %s' % rasters_out_folder))
+
+        #Create sink for results   
+        fields = se_polygons.fields()
+        fields.append(QgsField( self.tr('Issues'), QVariant.String))
+    
+        (sink, dest_id) = self.parameterAsSink(
+            parameters,
+            self.OUTPUT,
+            context,
+            fields,
+            se_polygons.wkbType(),
+            se_polygons.sourceCrs()
+        )         
+             
+         
         drape_errors = []
         no_source = []
         feedback.reportError(self.tr('Vse ok do sem'))
         feedback.pushDebugInfo(self.tr('Vse ok do sem'))
-    
-        (sink, feat) = self.parameterAsSink(
-                    parameters,
-                    self.OUTPUT,
-                    context,
-                    se_polygons.fields(),
-                    se_polygons.wkbType(),
-                    se_polygons.sourceCrs()
-                )     
+
+
+        #Drape
 
         for feature in se_polygons.getFeatures():
-            if str(feature['vir meritev']).isdigit():   
-                sink.addFeature(feature, QgsFeatureSink.FastInsert)
+            vir = str(feature['vir meritev'])
+            if vir.isdigit():   
+                attr = 'vir meritev'
+                feat = se_polygons.materialize(QgsFeatureRequest().setFilterFid(feature.id()))   
+                raster_type = 'dem'
+                raster_extension = 'tif'
                 #Get raster dem
-                raster_path = [f for f in Path(rasters_folder).glob('**/*dem.tif') if ''.join(filter(lambda x: x.isdigit(), f.name)) == str(feature['vir meritev'])]
+                raster_path = [f for f in Path(rasters_folder).glob('**/*%s.%s' % (raster_type, raster_extension)) if ''.join(filter(lambda x: x.isdigit(), f.name)) == vir]
                 try:
-                    layer = QgsRasterLayer(str(raster_path[0]), 'sda')
-                    layer.setCrs(se_polygons.sourceCrs())    
+                    layer = QgsRasterLayer(str(raster_path[0]), 'sda')           
+                    layer.setCrs( se_polygons.sourceCrs() )    
                     #Drape (set Z value from raster)
                     source = processing.run("native:setzfromraster", {
                         'BAND': 1,
@@ -269,15 +277,55 @@ class se_dmv(QgsProcessingAlgorithm):
                         'RASTER': layer,
                         'SCALE': 1,
                         'OUTPUT': 'memory:'
-                    }, context=context)['OUTPUT']                                                       
+                    }, context=context)['OUTPUT']                     
+                  
+                    source_provider=source.dataProvider()
+                    source_provider.addAttributes([QgsField( self.tr('Issues'), QVariant.String)])
+                    source.updateFields()
+  
+                    #Check for null 
+                    draped_vertices = processing.run("native:extractvertices", {
+                            'INPUT': source,
+                            'OUTPUT': 'memory:'
+                        }, context=context)['OUTPUT']  
+   
+                    no_elevation = 0
+                    for draped_vertices in draped_vertices.getFeatures():
+                        geom = draped_vertices.geometry()
+                        geom = geom.constGet()
+                        if geom.z() == 0:
+                            no_elevation = no_elevation + 1 
+                     
+                    feedback.pushInfo(self.tr('ELEs errors: %s')  %str(no_elevation))
+
+                    source.startEditing()
+                    fields = source.fields()
+                    field = fields.indexFromName(self.tr('Issues'))
+                    for draped in source.getFeatures():   
+                        id = draped.id()             
+                        if no_elevation == 0:      
+                            source.startEditing()
+                            source.changeAttributeValue(id, field, 'No issues detected')
+                            source.commitChanges()                            
+                        else: 
+                            source.startEditing()
+                            source.changeAttributeValue(id, field, '%s vertices without elevation' % no_elevation )
+                            source.commitChanges()  
+                         
+
+                    for draped in source.getFeatures():  
+                        sink.addFeature(draped, QgsFeatureSink.FastInsert)   
                 except:
-                    drape_errors.append(str(feature['vir meritev']))           
+                    drape_errors.append('%s:%s' %(str(feature['Koda_id']), str(feature['vir meritev'])))  
+        
             else:
                 no_source.append(str(feature['vir meritev']))  
-               
+            
+            
         
- 
+
         feedback.pushInfo(self.tr('Source errors: %s')  %str(no_source))
+
         feedback.reportError(self.tr('Drape errors: %s')  %str(drape_errors))
         """
         
@@ -320,15 +368,7 @@ class se_dmv(QgsProcessingAlgorithm):
         if source is None:
             raise QgsProcessingException(self.invalidSourceError(parameters, self.INPUT))
         
-        (sink, dest_id) = self.parameterAsSink(
-            parameters,
-            self.OUTPUT,
-            context,
-            source.fields(),
-            source.wkbType(),
-            source.sourceCrs()
-        )
-        
+
         # Send some information to the user
         feedback.pushInfo('CRS is {}'.format(source.sourceCrs().authid()))
 
