@@ -30,7 +30,9 @@ from qgis.core import (QgsProject,
                        QgsVectorLayer,
                        QgsFeatureRequest,
                        QgsField,
-                       QgsCoordinateReferenceSystem)
+                       QgsCoordinateReferenceSystem,
+                       QgsProcessingParameterBoolean,
+                       QgsProcessingParameterDefinition)
 from qgis import processing
 from ..externals import path
 from pathlib import Path
@@ -143,6 +145,16 @@ class se_dmv(QgsProcessingAlgorithm):
         except:
             default_out_folder = ''
 
+
+
+        param = QgsProcessingParameterBoolean('assign_crs', self.tr('Assign project CRS to raster'), defaultValue=False)
+        param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        self.addParameter(
+            param
+            )
+
+
+
         self.addParameter(
             QgsProcessingParameterFile(
                 'raster_out', 
@@ -198,7 +210,7 @@ class se_dmv(QgsProcessingAlgorithm):
             context
         )
         
-
+        assign_crs = parameters['assign_crs']
         # Temp
         results = {}
         outputs = {}
@@ -252,7 +264,7 @@ class se_dmv(QgsProcessingAlgorithm):
         drape_errors = []
         no_source = []
         feedback.reportError(self.tr('Vse ok do sem'))
-        feedback.pushDebugInfo(self.tr('Vse ok do sem'))
+        
 
 
         #Drape
@@ -266,15 +278,23 @@ class se_dmv(QgsProcessingAlgorithm):
                 raster_extension = 'tif'
                 #Get raster dem
                 raster_path = [f for f in Path(rasters_folder).glob('**/*%s.%s' % (raster_type, raster_extension)) if ''.join(filter(lambda x: x.isdigit(), f.name)) == vir]
-                try:
-                    layer = QgsRasterLayer(str(raster_path[0]), 'sda')           
-                    layer.setCrs( se_polygons.sourceCrs() )    
+                try:           
+                    rlayer = QgsRasterLayer(str(raster_path[0]), 'sda')   
+                    if assign_crs and rlayer.crs() != se_polygons.crs():
+                        try: 
+                            rlayer = processing.run('gdal:assignprojection', {
+                                'CRS': se_polygons.crs(),
+                                'INPUT': rlayer
+                            }, context=context, feedback = feedback)                    
+                        except:
+                            feedback.pushDebugInfo(self.tr('Raster CRS not assigned!'))
+                
                     #Drape (set Z value from raster)
                     source = processing.run("native:setzfromraster", {
                         'BAND': 1,
                         'INPUT': feat,
                         'NODATA': 0,
-                        'RASTER': layer,
+                        'RASTER': rlayer,
                         'SCALE': 1,
                         'OUTPUT': 'memory:'
                     }, context=context)['OUTPUT']                     
@@ -290,14 +310,14 @@ class se_dmv(QgsProcessingAlgorithm):
                         }, context=context)['OUTPUT']  
    
                     no_elevation = 0
+                    vertices = 0
                     for draped_vertices in draped_vertices.getFeatures():
+                        vertices = vertices + 1
                         geom = draped_vertices.geometry()
                         geom = geom.constGet()
                         if geom.z() == 0:
                             no_elevation = no_elevation + 1 
                      
-                    feedback.pushInfo(self.tr('ELEs errors: %s')  %str(no_elevation))
-
                     source.startEditing()
                     fields = source.fields()
                     field = fields.indexFromName(self.tr('Issues'))
@@ -305,14 +325,12 @@ class se_dmv(QgsProcessingAlgorithm):
                         id = draped.id()             
                         if no_elevation == 0:      
                             source.startEditing()
-                            source.changeAttributeValue(id, field, 'No issues detected')
+                            source.changeAttributeValue(id, field, 'No issues detected.')
                             source.commitChanges()                            
                         else: 
                             source.startEditing()
-                            source.changeAttributeValue(id, field, '%s vertices without elevation' % no_elevation )
+                            source.changeAttributeValue(id, field, '%s of %s vertices without elevation!!' % (no_elevation,vertices)  )
                             source.commitChanges()  
-                         
-
                     for draped in source.getFeatures():  
                         sink.addFeature(draped, QgsFeatureSink.FastInsert)   
                 except:
@@ -320,13 +338,11 @@ class se_dmv(QgsProcessingAlgorithm):
         
             else:
                 no_source.append(str(feature['vir meritev']))  
-            
-            
-        
-
+ 
         feedback.pushInfo(self.tr('Source errors: %s')  %str(no_source))
-
         feedback.reportError(self.tr('Drape errors: %s')  %str(drape_errors))
+
+        feedback.reportError(self.tr('Vse ok do sem'))      
         """
         
         feedback.setCurrentStep(2)
