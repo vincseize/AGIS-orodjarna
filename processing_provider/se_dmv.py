@@ -32,7 +32,9 @@ from qgis.core import (QgsProject,
                        QgsField,
                        QgsCoordinateReferenceSystem,
                        QgsProcessingParameterBoolean,
-                       QgsProcessingParameterDefinition)
+                       QgsProcessingParameterDefinition,
+                       QgsGeometry,
+                       QgsFeature)
 from qgis import processing
 from ..externals import path
 from pathlib import Path
@@ -265,17 +267,54 @@ class se_dmv(QgsProcessingAlgorithm):
         no_source = []
         feedback.reportError(self.tr('Vse ok do sem'))
         
+                                                            
+        for feature in se_polygons.getFeatures():
+            se_polygons.selectByExpression( "\"Koda_id\"=%s and \"vir meritev\"=%s" % (feature['Koda_id'],feature['vir meritev']) )
+            selection = se_polygons.selectedFeatures()         
+            geoms = QgsGeometry.fromWkt('GEOMETRYCOLLECTION()') 
+            for feat in selection:
+                feedback.reportError(self.tr('Merging: %s; fs: %s' % (feat['Koda_id'], feat['vir meritev'])))
+                geoms = geoms.combine(feat.geometry()) 
+                se_polygons.startEditing()                  
+                se_polygons.changeGeometry(feature.id(),geoms) 
+                se_polygons.commitChanges()      
+            se_polygons.removeSelection()
+            geoms = None
 
+        features_list = []
+        for feature in se_polygons.getFeatures():
+            flist = []
+            flist.append(feature['Koda_id'])
+            flist.append(feature['vir meritev'])
+            flist.append(feature.geometry())
+            features_list.append(flist)
+
+        duplicates = 0
+        for element in features_list:
+            if features_list.count(element) == 1:
+                feedback.pushInfo("So podvojeni 11111")
+            elif features_list.count(element) == 2:   
+                feedback.pushInfo("So podvojeni 22222") 
+            else:
+                feedback.pushInfo("Ni podvojenih 3?")
+        if duplicates < 2:
+            feedback.pushInfo("Ni podvojenihssss")
+        
+
+
+
+
+        feedback.reportError(str(se_polygons.featureCount()))
 
         #Drape
+        attr = 'vir meritev'
+        raster_type = 'dem'
+        raster_extension = 'tif'
 
         for feature in se_polygons.getFeatures():
             vir = str(feature['vir meritev'])
             if vir.isdigit():   
-                attr = 'vir meritev'
-                feat = se_polygons.materialize(QgsFeatureRequest().setFilterFid(feature.id()))   
-                raster_type = 'dem'
-                raster_extension = 'tif'
+                feat = se_polygons.materialize(QgsFeatureRequest().setFilterFid(feature.id()))
                 #Get raster dem
                 raster_path = [f for f in Path(rasters_folder).glob('**/*%s.%s' % (raster_type, raster_extension)) if ''.join(filter(lambda x: x.isdigit(), f.name)) == vir]
                 try:           
@@ -297,12 +336,12 @@ class se_dmv(QgsProcessingAlgorithm):
                         'RASTER': rlayer,
                         'SCALE': 1,
                         'OUTPUT': 'memory:'
-                    }, context=context)['OUTPUT']                     
-                  
+                    }, context=context)['OUTPUT']     
+
                     source_provider=source.dataProvider()
                     source_provider.addAttributes([QgsField( self.tr('Issues'), QVariant.String)])
                     source.updateFields()
-  
+
                     #Check for null 
                     draped_vertices = processing.run("native:extractvertices", {
                             'INPUT': source,
@@ -317,7 +356,8 @@ class se_dmv(QgsProcessingAlgorithm):
                         geom = geom.constGet()
                         if geom.z() == 0:
                             no_elevation = no_elevation + 1 
-                     
+
+                    
                     source.startEditing()
                     fields = source.fields()
                     field = fields.indexFromName(self.tr('Issues'))
@@ -326,54 +366,51 @@ class se_dmv(QgsProcessingAlgorithm):
                         if no_elevation == 0:      
                             source.startEditing()
                             source.changeAttributeValue(id, field, 'No issues detected.')
-                            source.commitChanges()                            
+                            source.commitChanges() 
+
+                            # Clip raster by mask layer
+                            out = rasters_out_folder + '/' + draped['Koda_id'] +'_' +draped['vir meritev'] + '.tif'
+                            if Path(out).exists():
+                                feedback.reportError('It exists:   %s' % out)
+                            else:
+                                cliped_raster = processing.run('gdal:cliprasterbymasklayer',  {
+                                    'ALPHA_BAND': False,
+                                    'CROP_TO_CUTLINE': True,
+                                    'DATA_TYPE': 0,
+                                    'EXTRA': '',
+                                    'INPUT': rlayer,
+                                    'KEEP_RESOLUTION': True,
+                                    'MASK': source,
+                                    'MULTITHREADING': False,
+                                    'NODATA': None,
+                                    'OPTIONS': '',
+                                    'SET_RESOLUTION': False,
+                                    'SOURCE_CRS': se_polygons.crs(),
+                                    'TARGET_CRS': se_polygons.crs(),
+                                    'X_RESOLUTION': None,
+                                    'Y_RESOLUTION': None,
+                                    'OUTPUT': out
+                                }, context=context)['OUTPUT']  
+                     
                         else: 
                             source.startEditing()
                             source.changeAttributeValue(id, field, '%s of %s vertices without elevation!!' % (no_elevation,vertices)  )
                             source.commitChanges()  
-                    for draped in source.getFeatures():  
-                        sink.addFeature(draped, QgsFeatureSink.FastInsert)   
+                    
+                    for draped in source.getFeatures(): 
+                        sink.addFeature(draped, QgsFeatureSink.FastInsert)  
+                        
                 except:
-                    drape_errors.append('%s:%s' %(str(feature['Koda_id']), str(feature['vir meritev'])))  
-        
+                    drape_errors.append('%s:%s' %(str(feature['Koda_id']), str(feature['vir meritev'])))                   
+
             else:
                 no_source.append(str(feature['vir meritev']))  
+                #Add Surface from points
  
         feedback.pushInfo(self.tr('Source errors: %s')  %str(no_source))
         feedback.reportError(self.tr('Drape errors: %s')  %str(drape_errors))
 
-        feedback.reportError(self.tr('Vse ok do sem'))      
-        """
-        
-        feedback.setCurrentStep(2)
-        if feedback.isCanceled():
-            return {}
-
-        # Clip raster by mask layer
-        alg_params = {
-            'ALPHA_BAND': False,
-            'CROP_TO_CUTLINE': True,
-            'DATA_TYPE': 0,
-            'EXTRA': '',
-            'INPUT': parameters['FSkica'],
-            'KEEP_RESOLUTION': True,
-            'MASK': outputs['ExtractByAttribute']['OUTPUT'],
-            'MULTITHREADING': False,
-            'NODATA': None,
-            'OPTIONS': '',
-            'SET_RESOLUTION': False,
-            'SOURCE_CRS': 'ProjectCrs',
-            'TARGET_CRS': 'ProjectCrs',
-            'X_RESOLUTION': None,
-            'Y_RESOLUTION': None,
-            'OUTPUT': parameters['Raster_ven']
-        }
-        outputs['ClipRasterByMaskLayer'] = processing.run('gdal:cliprasterbymasklayer', alg_params, context=context, feedback=feedback, is_child_algorithm=True)
-        results['Raster_ven'] = outputs['ClipRasterByMaskLayer']['OUTPUT']
-        return results
-
-        """
-
+        feedback.reportError(self.tr('Vse ok do sem'))     
 
 
        
@@ -401,12 +438,7 @@ class se_dmv(QgsProcessingAlgorithm):
         features = source.getFeatures()
 
         for current, feature in enumerate(features):
-            # Stop the algorithm if cancel button has been clicked
-            if feedback.isCanceled():
-                break
 
-            # Add a feature in the sink
-            sink.addFeature(feature, QgsFeatureSink.FastInsert)
 
             # Update the progress bar
             feedback.setProgress(int(current * total))
