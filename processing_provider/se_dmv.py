@@ -34,10 +34,15 @@ from qgis.core import (QgsProject,
                        QgsProcessingParameterBoolean,
                        QgsProcessingParameterDefinition,
                        QgsGeometry,
-                       QgsFeature)
+                       QgsFeature,
+                       QgsProcessingParameterField)
 from qgis import processing
 from ..externals import path
 from pathlib import Path
+import webbrowser
+import datetime
+import tempfile
+
 class se_dmv(QgsProcessingAlgorithm):
     """
     This is an example algorithm that takes a vector layer and
@@ -121,7 +126,7 @@ class se_dmv(QgsProcessingAlgorithm):
 
         self.addParameter(
             QgsProcessingParameterFeatureSource(
-                'se_polygons', 
+                'su_polygons', 
                 self.tr('meje SE'), 
                 types=[QgsProcessing.TypeVectorPolygon], defaultValue=None
                 )
@@ -135,42 +140,51 @@ class se_dmv(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterFile(
                 'raster_in', 
-                self.tr('Folder with rasters'), 
+                self.tr('Mapa s fotoskicami'), 
                 behavior=QgsProcessingParameterFile.Folder, 
                 fileFilter='All files (*.*)', 
                 defaultValue= str(default_in_older)
                 )
             )
 
+        param = QgsProcessingParameterBoolean('assign_crs', self.tr('Nastavi koordinatni sistem (KS) fotoskic na KS sloja z SE -ji '), defaultValue=False)
+        param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        self.addParameter(param)
+
+      
+        fids = QgsProcessingParameterField('fid', self.tr('fid'), optional=True, type=QgsProcessingParameterField.Any, parentLayerParameterName='su_polygons', allowMultiple=False, defaultValue=self.tr('fid'))
+        fids.setFlags(fids.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        self.addParameter(fids)
+
+        sus = QgsProcessingParameterField('su_id', self.tr('Koda_id'), optional=True, type=QgsProcessingParameterField.Any, parentLayerParameterName='su_polygons',allowMultiple=False, defaultValue=self.tr('Koda_id'))
+        sus.setFlags(sus.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        self.addParameter(sus)
+
+        param = QgsProcessingParameterField('meas_source', self.tr('vir meritev'), optional=True, type=QgsProcessingParameterField.Any, parentLayerParameterName='su_polygons',allowMultiple=False, defaultValue=self.tr('vir meritev'))
+        param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        self.addParameter(param)
+
+
         try:
             default_out_folder = Path(QgsProject.instance().homePath())/self.tr('SE površine')
         except:
             default_out_folder = ''
 
-
-
-        param = QgsProcessingParameterBoolean('assign_crs', self.tr('Assign project CRS to raster'), defaultValue=False)
-        param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
-        self.addParameter(
-            param
-            )
-
-
-
         self.addParameter(
             QgsProcessingParameterFile(
                 'raster_out', 
-                self.tr('Output folder for SU surfaces'), 
+                self.tr('Mapa kamor bodo shranjene površine SE'), 
                 behavior=QgsProcessingParameterFile.Folder, 
                 fileFilter='All files (*.*)', 
                 defaultValue= str(default_out_folder)
                 )
             )
 
+        # Temp, unused
         self.addParameter(
             QgsProcessingParameterFeatureSink(
-                'Featuire_ven', 
-                'featuire_ven', 
+                'Feature_out', 
+                'feature_out', 
                 type=QgsProcessing.TypeVectorAnyGeometry, 
                 createByDefault=True, 
                 defaultValue=None
@@ -199,13 +213,12 @@ class se_dmv(QgsProcessingAlgorithm):
         # to uniquely identify the feature sink, and must be included in the
         # dictionary returned by the processAlgorithm function.
         
- 
         rasters_folder = self.parameterAsFile(
             parameters,
             'raster_in',
             context
-        )
-        
+        ) 
+
         rasters_out_folder = self.parameterAsFile(
             parameters,
             'raster_out',
@@ -213,101 +226,129 @@ class se_dmv(QgsProcessingAlgorithm):
         )
         
         assign_crs = parameters['assign_crs']
-        # Temp
+        su_polygons = parameters['su_polygons']
+
+        field_fid = parameters['fid']
+        field_su = parameters['su_id']
+        field_source = parameters['meas_source']
+
+        #Create log file
+        logfolder = Path(QgsProject.instance().homePath()) 
+        if logfolder.is_dir():
+            logfile = str(logfolder/'AGIS SE-DMV_log.txt')
+        else:
+            logfile = tempfile.TemporaryFile()
+
+        # Temp, unused
         results = {}
         outputs = {}
         
+        
+        #Functions
+
+        def field_index(layer, field):
+            field_index = layer.fields().indexOf(field)
+            return field_index
+
+
+        def log_write(*argv, **kwargs): 
+            with open(logfile, "a") as text_file: 
+                for arg in argv:
+                    text_file.write("%s\n" % arg)
+                for k,v in kwargs.items():
+                    text_file.write("%s: %s\n" % (k, v))
+
+        def select_features(layer, expression):
+            layer.selectByExpression(expression)
+            selection = layer.selectedFeatures()  
+            return selection
+
+
+
+        #Start log        
+        log_write(self.tr('Začetek loga: '), date=datetime.datetime.now())
+        processes_log = []
 
         #Fix geometries
-        se_polygons = processing.run("native:fixgeometries", {
-                'INPUT': parameters['se_polygons'],
+        fixed_geometries = processing.run("native:fixgeometries", {
+                'INPUT': su_polygons,
                 'OUTPUT': 'memory:'
             }, context=context)['OUTPUT']
-        
-        feedback.pushDebugInfo(self.tr('Geometry fixed.'))
+
+        processes_log.append("native:fixgeometries")
+        feedback.pushDebugInfo(self.tr('Geometrije popravljene..'))
         feedback.setCurrentStep(1)
         if feedback.isCanceled():
             return {}
-
+    
         #Get unique values of "vir meritve" values
-        values = se_polygons.fields().indexOf(self.tr('vir meritev'))
-        sources = se_polygons.uniqueValues(se_polygons.fields().indexOf(self.tr('vir meritev')))
-        feedback.pushDebugInfo(str(sources))
-  
+        sources = fixed_geometries.uniqueValues(field_index(fixed_geometries, field_source))
+        log_write(self.tr('Seznam vseh virov meritev navedenih v sloju z mejami SE:'), sorted(sources))
+
         #Get list of raster sources
         fotoskice_list = [''.join(filter(lambda x: x.isdigit(), f.name)) for f in Path(rasters_folder).iterdir() if f.is_dir()]
- 
+        log_write(self.tr('Seznam vseh Fotoskic najdenih v mapi projekta:'), sorted(fotoskice_list))
+
         #Check for missing data
         missing_rasters = [f for f in sources if f not in fotoskice_list ]
-        feedback.reportError(self.tr('Missing rasters:'))
+        feedback.reportError(self.tr('Manjkajoče fotoskice:'))
         feedback.reportError(str(missing_rasters))
+        log_write(self.tr('Manjkajoče fotoskice:'), sorted(missing_rasters))
 
         #Create rasters output directory
         if Path(rasters_out_folder).exists():
-            feedback.pushDebugInfo('Output directory exists: %s' % rasters_out_folder)
+            feedback.pushDebugInfo('Mapa obstaja: %s' % rasters_out_folder)
         else:
             Path(rasters_out_folder).mkdir(parents=True, exist_ok=True)
-            feedback.pushDebugInfo(self.tr('Creating output directory: %s' % rasters_out_folder))
+            feedback.pushDebugInfo(self.tr('Mapa ne obstaja, ustvarjam: %s' % rasters_out_folder))
 
         #Create sink for results   
-        fields = se_polygons.fields()
-        fields.append(QgsField( self.tr('Issues'), QVariant.String))
+        fields = fixed_geometries.fields()
+        fields.append(QgsField( self.tr('Napake'), QVariant.String))
     
         (sink, dest_id) = self.parameterAsSink(
             parameters,
             self.OUTPUT,
             context,
             fields,
-            se_polygons.wkbType(),
-            se_polygons.sourceCrs()
+            fixed_geometries.wkbType(),
+            fixed_geometries.sourceCrs()
         )         
              
-         
         drape_errors = []
         no_source = []
-        feedback.reportError(self.tr('Vse ok do sem'))
-        
-                                                            
-        for feature in se_polygons.getFeatures():
-            se_polygons.selectByExpression( "\"Koda_id\"=%s and \"vir meritev\"=%s" % (feature['Koda_id'],feature['vir meritev']) )
-            selection = se_polygons.selectedFeatures()         
+
+       #Merge identical SU-s (same SU id, same raster source)        
+        merged_features = []
+        for feature in fixed_geometries.getFeatures():    
+            selection = select_features(fixed_geometries, "\"Koda_id\"=%s and \"vir meritev\"=%s" % (feature[field_su],feature[field_source])) 
             geoms = QgsGeometry.fromWkt('GEOMETRYCOLLECTION()') 
+            if len(selection) > 1:
+                merged_features.append(self.tr(str('SE %s FS %s (%sx)' %(feature[field_su], feature[field_source], len(selection)))))
             for feat in selection:
-                feedback.reportError(self.tr('Merging: %s; fs: %s' % (feat['Koda_id'], feat['vir meritev'])))
                 geoms = geoms.combine(feat.geometry()) 
-                se_polygons.startEditing()                  
-                se_polygons.changeGeometry(feature.id(),geoms) 
-                se_polygons.commitChanges()      
-            se_polygons.removeSelection()
-            geoms = None
+                fixed_geometries.startEditing()                
+                fixed_geometries.changeGeometry(feature.id(),geoms) 
+                fixed_geometries.commitChanges()  
+            fixed_geometries.removeSelection()
 
-        features_list = []
-        for feature in se_polygons.getFeatures():
-            flist = []
-            flist.append(feature['Koda_id'])
-            flist.append(feature['vir meritev'])
-            flist.append(feature.geometry())
-            features_list.append(flist)
+        for feature in fixed_geometries.getFeatures():
+            selection = select_features(fixed_geometries, "\"Koda_id\"=%s and \"vir meritev\"=%s" % (feature['Koda_id'],feature['vir meritev'])) 
+            nr = len(selection)
+            for feat in selection:
+                while nr > 1:
+                    fixed_geometries.startEditing()
+                    fixed_geometries.deleteFeature(feat.id())
+                    fixed_geometries.commitChanges()
+                    nr = nr - 1
+            fixed_geometries.removeSelection()
 
-        duplicates = 0
-        for element in features_list:
-            if features_list.count(element) == 1:
-                feedback.pushInfo("So podvojeni 11111")
-            elif features_list.count(element) == 2:   
-                feedback.pushInfo("So podvojeni 22222") 
-            else:
-                feedback.pushInfo("Ni podvojenih 3?")
-        if duplicates < 2:
-            feedback.pushInfo("Ni podvojenihssss")
-        
-
-
-
-
-        feedback.reportError(str(se_polygons.featureCount()))
+        merged_features = [ (i) for i in set(merged_features) ]
+        log_write(self.tr('Združene SE:'), sorted(merged_features))        
+     
 
         #Drape
-        attr = 'vir meritev'
+        #----------------------------------------------
         raster_type = 'dem'
         raster_extension = 'tif'
 
@@ -466,6 +507,12 @@ class se_dmv(QgsProcessingAlgorithm):
         # statistics, etc. These should all be included in the returned
         # dictionary, with keys matching the feature corresponding parameter
         # or output names.
+
+        log_write(processes_log=processes_log)
+        log_write(end_log='\n')
+        webbrowser.open(logfile)
+
+
         return {self.OUTPUT: dest_id}
 
 
