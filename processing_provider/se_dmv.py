@@ -480,6 +480,7 @@ class se_dmv(QgsProcessingAlgorithm):
                 fixed_geometries.startEditing()
                 fixed_geometries.changeAttributeValue(feature.id(), ffield, 'aaaaaaaaaaaa')
                 #feedback.reportError(self.tr(feature[field_source]))   
+                #----
                 fixed_geometries.commitChanges()
                 no_source.append(str(feature[field_source]))  
                 sink.addFeature(feature, QgsFeatureSink.FastInsert)  
