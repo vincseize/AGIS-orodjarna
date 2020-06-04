@@ -36,7 +36,9 @@ from qgis.core import (QgsProject,
                        QgsGeometry,
                        QgsFeature,
                        QgsProcessingParameterField,
-                       QgsProcessingParameterString)
+                       QgsProcessingParameterString,
+                       QgsRasterBandStats
+                       )
 from qgis import processing
 from ..externals import path
 from pathlib import Path
@@ -377,105 +379,103 @@ class se_dmv(QgsProcessingAlgorithm):
                 su_layer = fixed_geometries.materialize(QgsFeatureRequest().setFilterFid(feature.id()))
                 #Get raster dem
                 raster_path = '%s\\FS %s%s.%s' %(fotoskice_dict[str(feature[field_source])], feature[field_source], raster_type, raster_extension)
-                #try:       
-                rlayer = QgsRasterLayer(raster_path, 'fs_raster')   
-                if assign_crs and rlayer.crs() != fixed_geometries.crs():
-                    try: 
-                        rlayer = processing.run('gdal:assignprojection', {
-                            'CRS': fixed_geometries.crs(),
-                            'INPUT': rlayer
-                        }, context=context)                    
-                    except:
-                        feedback.reportError(self.tr('Rastru ni bilo mogoče pripisati koordinatnega sistema: %s' % raster_path))
-            
-                #Drape (set Z value from raster)
-                draped = processing.run("native:setzfromraster", {
-                    'BAND': 1,
-                    'INPUT': su_layer,
-                    'NODATA': 0,
-                    'RASTER': rlayer,
-                    'SCALE': 1,
-                    'OUTPUT': 'memory:'
-                }, context=context)['OUTPUT']                       
-
-                #Check for null elevations
-                draped_vertices = processing.run("native:extractvertices", {
-                        'INPUT': draped,
-                        'OUTPUT': 'memory:'
-                    }, context=context)['OUTPUT']  
-
-                no_elevation = 0
-                vertices = 0
+                try:       
+                    rlayer = QgsRasterLayer(raster_path, 'fs_raster')   
+                    if assign_crs and rlayer.crs() != fixed_geometries.crs():
+                        try: 
+                            rlayer = processing.run('gdal:assignprojection', {
+                                'CRS': fixed_geometries.crs(),
+                                'INPUT': rlayer
+                            }, context=context)                    
+                        except:
+                            feedback.reportError(self.tr('Rastru ni bilo mogoče pripisati koordinatnega sistema: %s' % raster_path))
                 
-                for draped_vertex in draped_vertices.getFeatures():
-                    vertices = vertices + 1
-                    geom = draped_vertex.geometry()
-                    geom = geom.constGet()
-                    if geom.z() == 0:
-                        no_elevation = no_elevation + 1 
-               
-                # Clip raster by mask SU
-            
-                field = field_index(draped, issues_field)        
-                for dfeature in draped.getFeatures():    
-                    id = dfeature.id()                             
-                    out = rasters_out_folder + '/' + str(dfeature[field_su]) +'_' + str(dfeature[field_source]) + '.tif'                                    
-                    if Path(out).exists():
-                        feedback.pushDebugInfo('%s obstaja, prepisujem...' % out)
-                        Path(out).unlink()                                                  
-                    try:
-                        cliped_raster = processing.run('gdal:cliprasterbymasklayer',  {
-                            'ALPHA_BAND': False,
-                            'CROP_TO_CUTLINE': True,
-                            'DATA_TYPE': 0,
-                            'EXTRA': '',
-                            'INPUT': rlayer,
-                            'KEEP_RESOLUTION': True,
-                            'MASK': draped,
-                            'MULTITHREADING': False,
-                            'NODATA': None,
-                            'OPTIONS': '',
-                            'SET_RESOLUTION': False,
-                            'SOURCE_CRS': draped.crs(),
-                            'TARGET_CRS': draped.crs(),
-                            'X_RESOLUTION': None,
-                            'Y_RESOLUTION': None,
-                            'OUTPUT': out
-                        }, context=context)['OUTPUT']  
-                        raster_status = 1
-                    except:
-                        draped.startEditing()  
-                        draped.changeAttributeValue(id, field, self.tr('Ni bilo mogoče obrezati rastra!'))
-                        draped.commitChanges() 
-                        feedback.reportError(self.tr('sssshhhhhhhhssss'))
-                        raster_status = 0
+                    #Drape (set Z value from raster)
+                    draped = processing.run("native:setzfromraster", {
+                        'BAND': 1,
+                        'INPUT': su_layer,
+                        'NODATA': 0,
+                        'RASTER': rlayer,
+                        'SCALE': 1,
+                        'OUTPUT': 'memory:'
+                    }, context=context)['OUTPUT']                       
 
-                    draped.startEditing()  
-                    if no_elevation == 0 and raster_status == 1:      
-                        draped.changeAttributeValue(id, field, self.tr('Brez težav.'))
-                        draped.commitChanges() 
-                    elif no_elevation == 0 and raster_status == 0: 
-                        feedback.reportError(self.tr('ssssssfffffffffffffssss'))        
-                        draped.changeAttributeValue(id, field, self.tr('Višine so ok, vendar ni bilo mogoče obrezati rastra!'))
-                        draped.commitChanges() 
-                    else: 
-                        draped.changeAttributeValue(id, field, '%s od %s verteksov brez nadmorske višine!!' % (no_elevation,vertices)  )
-                        feedback.reportError(self.tr('sssssssssssss'))
-                        draped.commitChanges()  
-                for fdraped in draped.getFeatures():
-                    sink.addFeature(fdraped, QgsFeatureSink.FastInsert)  
-                """            
-                    except:
-                        drape_errors.append('%s:%s' %(str(feature[field_su]), str(feature[field_source])))      
-                        a = feature.id()
-                        b = feature[field_fid]
-                        c =field_index(fixed_geometries, issues_field)
+                    #Check for null elevations
+                    draped_vertices = processing.run("native:extractvertices", {
+                            'INPUT': draped,
+                            'OUTPUT': 'memory:'
+                        }, context=context)['OUTPUT']  
+
+                    no_elevation = 0
+                    vertices = 0
                     
-                        fixed_geometries.startEditing()
-                        fixed_geometries.changeAttributeValue(a, b, c)
-                        fixed_geometries.commitChanges()
-                        sink.addFeature(feature, QgsFeatureSink.FastInsert)               
-                """
+                    for draped_vertex in draped_vertices.getFeatures():
+                        vertices = vertices + 1
+                        geom = draped_vertex.geometry()
+                        geom = geom.constGet()
+                        if geom.z() == 0:
+                            no_elevation = no_elevation + 1 
+                
+                    # Clip raster by mask SU
+                
+                    field = field_index(draped, issues_field)        
+                    for dfeature in draped.getFeatures():    
+                        id = dfeature.id()                             
+                        out = rasters_out_folder + '/' + str(dfeature[field_su]) +'_' + str(dfeature[field_source]) + '.tif'                                    
+                        if Path(out).exists():
+                            feedback.pushDebugInfo('%s obstaja, prepisujem...' % out)
+                            Path(out).unlink()                                                  
+                        try:
+                            cliped_raster = processing.run('gdal:cliprasterbymasklayer',  {
+                                'ALPHA_BAND': False,
+                                'CROP_TO_CUTLINE': True,
+                                'DATA_TYPE': 0,
+                                'EXTRA': '',
+                                'INPUT': rlayer,
+                                'KEEP_RESOLUTION': True,
+                                'MASK': draped,
+                                'MULTITHREADING': False,
+                                'NODATA': None,
+                                'OPTIONS': '',
+                                'SET_RESOLUTION': False,
+                                'SOURCE_CRS': draped.crs(),
+                                'TARGET_CRS': draped.crs(),
+                                'X_RESOLUTION': None,
+                                'Y_RESOLUTION': None,
+                                'OUTPUT': out
+                            }, context=context)['OUTPUT']  
+                            raster_status = 1
+                        except:
+                            draped.startEditing()  
+                            draped.changeAttributeValue(id, field, self.tr('Ni bilo mogoče obrezati rastra!'))
+                            draped.commitChanges() 
+                            feedback.reportError(self.tr('sssshhhhhhhhssss'))
+                            raster_status = 0
+
+                        draped.startEditing()  
+                        if no_elevation == 0 and raster_status == 1:      
+                            draped.changeAttributeValue(id, field, self.tr('Brez težav.'))
+                            draped.commitChanges() 
+                        elif no_elevation == 0 and raster_status == 0:      
+                            draped.changeAttributeValue(id, field, self.tr('Višine so ok, vendar ni bilo mogoče obrezati rastra!'))
+                            draped.commitChanges() 
+                        else: 
+                            draped.changeAttributeValue(id, field, '%s od %s verteksov brez nadmorske višine!!' % (no_elevation,vertices)  )
+                            draped.commitChanges()  
+                    for fdraped in draped.getFeatures():
+                        sink.addFeature(fdraped, QgsFeatureSink.FastInsert)  
+                             
+                except:
+                    drape_errors.append('%s:%s' %(str(feature[field_su]), str(feature[field_source])))      
+                    a = feature.id()
+                    b = feature[field_fid]
+                    c =field_index(fixed_geometries, issues_field)
+                
+                    fixed_geometries.startEditing()
+                    fixed_geometries.changeAttributeValue(a, b, c)
+                    fixed_geometries.commitChanges()
+                    sink.addFeature(feature, QgsFeatureSink.FastInsert)               
+                    
             elif str(feature[field_su]) in su_points:
                 points_source.append(str(feature[field_source]))  
                 fixed_geometries.startEditing()
