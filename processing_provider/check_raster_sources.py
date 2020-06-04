@@ -212,8 +212,12 @@ class check_raster_sources(QgsProcessingAlgorithm):
 
         #Get unique values of "vir meritve" values
         sources = []
+        count = 0
         for f in fixed_geometries.uniqueValues(field_index(fixed_geometries, field_source)):
-            sources.append(int(f))
+            try:
+                sources.append(int(f))
+            except:
+                feedback.pushDebugInfo('Če vir \"%s\" ni totalka, ni veljaven vir merive! ' % f)
         
         #Get dictionary of raster sources
         fotoskice_dict = {}

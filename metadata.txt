@@ -6,7 +6,7 @@
 name=AGIS
 qgisMinimumVersion=3.0
 description=This plugin loads useful layers
-version=1.2.2
+version=1.2.3
 author=Matjaž Mori, ZVKDS CPA
 email=matjaz.mori@gmail.com
 
