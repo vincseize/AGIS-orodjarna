@@ -40,13 +40,13 @@ from qgis.core import (QgsProject,
                        QgsRasterBandStats
                        )
 from qgis import processing
-from ..externals import path
+from ..externals import path, field_index
 from pathlib import Path
 import webbrowser
 import datetime
 import tempfile
 
-class se_textures(QgsProcessingAlgorithm):
+class check_raster_sources(QgsProcessingAlgorithm):
     """
     This is an example algorithm that takes a vector layer and
     creates a new identical one.
@@ -74,7 +74,7 @@ class se_textures(QgsProcessingAlgorithm):
         return QCoreApplication.translate('Processing', string)
 
     def createInstance(self):
-        return se_textures()
+        return check_raster_sources()
 
     def name(self):
         """
@@ -84,14 +84,14 @@ class se_textures(QgsProcessingAlgorithm):
         lowercase alphanumeric characters only and no spaces or other
         formatting characters.
         """
-        return 'se_textures'
+        return 'check_raster_sources'
 
     def displayName(self):
         """
         Returns the translated algorithm name, which should be used for any
         user-visible display of the algorithm name.
         """
-        return self.tr('SE > teksture')
+        return self.tr('Preveri rasterske vire')
 
     def group(self):
         """
@@ -116,10 +116,12 @@ class se_textures(QgsProcessingAlgorithm):
         should provide a basic description about what the algorithm does and the
         parameters and outputs associated with it..
         """
-        help_text = """To orodje sprejme izrisane SE-je (meje SE) ter mapo s fotoskicami in izreže posamezne SE.
+        help_text = """To orodje sprejme izrisane SE-je (meje SE) ter mapo s fotoskicami. 
+        Rezultat je izpis mankajočih fotoskic.
+        Z orodjem je mogoče tudi pripisati koordinatni sistem mej SE vsem rastrom v mapi, ki so navedeni v sloju meje SE.
         Fotoskice morajo biti v formatu tif.
-        Rezultat so teksture za vsak posamezen SE. 
-        Operacija lahko traja nekaj časa, trajanje je odvisno od velikosti in števila fotoskic. 
+        
+        Z izbrano opcijo "Nastavi koordinatni sistem" spremenimo izvorne podatke fotoskic!
         """
         return self.tr(help_text)
 
@@ -152,8 +154,10 @@ class se_textures(QgsProcessingAlgorithm):
                 )
             )
 
+        strparam =QgsProcessingParameterString('dem_suffix', self.tr('Pripona za digitalni model višin'), optional=True, multiLine=False, defaultValue='_dem')
+        self.addParameter(strparam)
+
         param = QgsProcessingParameterBoolean('assign_crs', self.tr('Nastavi koordinatni sistem (KS) fotoskic na KS sloja z SE -ji (spremeni izvorne datoteke fotoskic!)'), defaultValue=False)
-        param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
         self.addParameter(param)
 
         fids = QgsProcessingParameterField('fid', self.tr('fid'), optional=False, type=QgsProcessingParameterField.Any, parentLayerParameterName='su_polygons', allowMultiple=False, defaultValue=self.tr('fid'))
@@ -167,23 +171,6 @@ class se_textures(QgsProcessingAlgorithm):
         param = QgsProcessingParameterField('meas_source', self.tr('vir meritev'), optional=False, type=QgsProcessingParameterField.Any, parentLayerParameterName='su_polygons',allowMultiple=False, defaultValue=self.tr('vir meritev'))
         param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
         self.addParameter(param)
-
-
-        try:
-            default_out_folder = Path(QgsProject.instance().homePath())/self.tr('SE teksture')
-        except:
-            default_out_folder = ''
-
-        self.addParameter(
-            QgsProcessingParameterFile(
-                'raster_out', 
-                self.tr('Mapa kamor bodo shranjene površine SE'), 
-                behavior=QgsProcessingParameterFile.Folder, 
-                fileFilter='All files (*.*)', 
-                defaultValue= str(default_out_folder)
-                )
-            )
-
 
         # We add a feature sink in which to store our processed features (this
         # usually takes the form of a newly created vector layer when the
@@ -205,38 +192,20 @@ class se_textures(QgsProcessingAlgorithm):
             context
         ) 
 
-        rasters_out_folder = self.parameterAsFile(
-            parameters,
-            'raster_out',
-            context
-        )
-        
+  
         su_polygons = parameters['su_polygons']
         raster_extension = 'tif'
-
+        assign_crs = parameters['assign_crs']
+        dem_suffix = parameters['dem_suffix']
         field_fid = parameters['fid']
         field_su = parameters['su_id']
         field_source = parameters['meas_source']
-        assign_crs = parameters['assign_crs']
-
-        #Functions
-
-        def field_index(layer, field):
-            field_index = layer.fields().indexOf(field)
-            return field_index
-
-        def select_features(layer, expression):
-            layer.selectByExpression(expression)
-            selection = layer.selectedFeatures()  
-            return selection
-
+       
         #Fix geometries
         fixed_geometries = processing.run("native:fixgeometries", {
                 'INPUT': su_polygons,
                 'OUTPUT': 'memory:'
             }, context=context)['OUTPUT']
-
-        feedback.pushDebugInfo(self.tr('Geometrije popravljene..'))
         feedback.setCurrentStep(1)
         if feedback.isCanceled():
             return {}
@@ -263,106 +232,58 @@ class se_textures(QgsProcessingAlgorithm):
         if len(missing_rasters) != 0:
             feedback.reportError(self.tr('Manjkajoče fotoskice:'))
             feedback.reportError(str(missing_rasters))
-  
-        #Create rasters output directory
-        if Path(rasters_out_folder).exists():
-            feedback.pushDebugInfo('Mapa obstaja: %s' % rasters_out_folder)
-        else:
-            Path(rasters_out_folder).mkdir(parents=True, exist_ok=True)
-            feedback.pushDebugInfo(self.tr('Mapa ne obstaja, ustvarjam: %s' % rasters_out_folder))
-               
-       #Merge identical SU-s (same SU id, same raster source)        
-        merged_features = []
-        for feature in fixed_geometries.getFeatures():    
-            selection = select_features(fixed_geometries, "\"%s\"=%s and \"%s\"=%s" % (field_su, feature[field_su], field_source, feature[field_source]))
-            geoms = QgsGeometry.fromWkt('GEOMETRYCOLLECTION()') 
-            if len(selection) > 1:
-                merged_features.append(self.tr(str('SE %s FS %s (%sx)' %(feature[field_su], feature[field_source], len(selection)))))
-            for feat in selection:
-                geoms = geoms.combine(feat.geometry()) 
-                fixed_geometries.startEditing()                
-                fixed_geometries.changeGeometry(feature.id(),geoms) 
-                fixed_geometries.commitChanges()  
-            fixed_geometries.removeSelection()
-
-        for feature in fixed_geometries.getFeatures():
-            selection = select_features(fixed_geometries, "\"%s\"=%s and \"%s\"=%s" % (field_su, feature[field_su], field_source, feature[field_source]))
-            nr = len(selection)
-            for feat in selection:
-                while nr > 1:
-                    fixed_geometries.startEditing()
-                    fixed_geometries.deleteFeature(feat.id())
-                    fixed_geometries.commitChanges()
-                    nr = nr - 1
-            fixed_geometries.removeSelection()
-
-        merged_features = [ (i) for i in set(merged_features) ]
- 
-     
+             
         #Clip                   
         no_source = []
         error_raster = []
         error_unknown = []
+        success_assign = []
+        different_crs = []
         total = 100.0 / fixed_geometries.featureCount() if fixed_geometries.featureCount() else 0
    
         for current, feature in enumerate(fixed_geometries.getFeatures()):
             if str(feature[field_source]).isdigit():   
                 su_layer = fixed_geometries.materialize(QgsFeatureRequest().setFilterFid(feature.id()))
                 #Get raster 
-                raster_path = '%s\\FS %s.%s' %(fotoskice_dict[str(feature[field_source])], feature[field_source], raster_extension)            
-                rlayer = QgsRasterLayer(raster_path, 'fs_raster')   
-                if not rlayer.isValid():
-                    feedback.reportError(self.tr('Težave z nalaganjem: %s' % raster_path))
-                    error_raster.append(str(feature[field_source])) 
-                else:
-                    if assign_crs and rlayer.crs() != fixed_geometries.crs():
-                        try: 
-                            rlayer = processing.run('gdal:assignprojection', {
-                                'CRS': fixed_geometries.crs(),
-                                'INPUT': rlayer
-                            }, context=context)                
-                        except:
-                            feedback.reportError(self.tr('Rastru ni bilo mogoče pripisati koordinatnega sistema: %s' % raster_path))
-                
-                    # Clip raster by mask SU                            
-                    out = rasters_out_folder + '\\' + str(feature[field_su]) + '_' + str(feature[field_source]) + '.tif'                       
-                    if Path(out).exists():
-                        feedback.pushDebugInfo('%s obstaja, prepisujem...' % out)
-                        Path(out).unlink()                                                  
-                    try:
-                        cliped_raster = processing.run('gdal:cliprasterbymasklayer',  {
-                            'ALPHA_BAND': False,
-                            'CROP_TO_CUTLINE': True,
-                            'DATA_TYPE': 0,
-                            'EXTRA': '',
-                            'INPUT': rlayer,
-                            'KEEP_RESOLUTION': True,
-                            'MASK': su_layer,
-                            'MULTITHREADING': False,
-                            'NODATA': None,
-                            'OPTIONS': '',
-                            'SET_RESOLUTION': False,
-                            'SOURCE_CRS': su_layer.crs(),
-                            'TARGET_CRS': su_layer.crs(),
-                            'X_RESOLUTION': None,
-                            'Y_RESOLUTION': None,
-                            'OUTPUT': out
-                        }, context=context)['OUTPUT']  
-                        raster_status = 1
-                    except:
-                        feedback.reportError(self.tr('Ni bilo mogoče obrezati rastra: SE %s, FS %s!' %(feature[field_su],feature[field_source])))  
-                        error_unknown.append(str(feature[field_source]))    
+                raster_path = '%s\\FS %s.%s' %(fotoskice_dict[str(feature[field_source])], feature[field_source], raster_extension)          
+                raster_path_dem = '%s\\FS %s%s.%s' %(fotoskice_dict[str(feature[field_source])], feature[field_source], dem_suffix, raster_extension)   
+                rlayer = QgsRasterLayer(raster_path, 'fs_raster')  
+                rlayer_dem =  QgsRasterLayer(raster_path_dem, 'fs_raster_dem')  
+                rasters = {rlayer:raster_path, rlayer_dem:raster_path_dem}
+                for layer, path in rasters.items():
+                    if not layer.isValid():
+                        feedback.reportError(self.tr('Težave z branjem fotoskice: %s' % path))
+                        error_raster.append(str(feature[field_source])) 
+                    else:
+                        if layer.crs() != fixed_geometries.crs() and not assign_crs:
+                            feedback.reportError(self.tr('FS nima istega koordinatnega sistema kot meje SE: %s' % feature[field_source]))
+                            different_crs.append(feature[field_source])
+                        elif assign_crs and layer.crs() != fixed_geometries.crs():
+                            try: 
+                                layer = processing.run('gdal:assignprojection', {
+                                    'CRS': fixed_geometries.crs(),
+                                    'INPUT': layer
+                                }, context=context) 
+                                success_assign.append()
+                            except:
+                                feedback.reportError(self.tr('Rastru ni bilo mogoče pripisati koordinatnega sistema: %s' % path))
+                                error_unknown.append(path)
             else:  
                 no_source.append(str(feature[field_su]))  
-
             feedback.setProgress(int(current * total))
+
 
         if len(no_source) != 0: 
             feedback.reportError(self.tr('SE brez navedene FS kot vira meritev: %s')  % str(no_source))
         if len(error_raster) != 0: 
-            feedback.reportError(self.tr('Fotoskice, ki jih ni bilo mogoče uporabiti (preveri poimenovanja map in datotek FS): %s')  % str(error_raster))
+            feedback.reportError(self.tr('Fotoskice, ki jih ni bilo mogoče prebrati (preveri poimenovanja map in datotek FS): %s')  % str(error_raster))
         if len(error_unknown) != 0: 
-            feedback.reportError(self.tr('Fotoskice, ki jih ni bilo mogoče obrezati (preveri ): %s')  %str(error_unknown))
+            feedback.reportError(self.tr('Fotoskice, ki jim ni bilo mogoče pripisati KS: %s')  %str(error_unknown))
+
+        if len(different_crs) != 0:
+            feedback.pushDebugInfo(self.tr('Fotoskice z drugačnim koordinatnim sistemomo: %s' % different_crs))
+        else:
+            feedback.pushDebugInfo(self.tr('Fotoskice brez težav'))
         return {}
 
 

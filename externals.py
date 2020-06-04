@@ -14,8 +14,10 @@ def path(item):
     path = path[item]
     return path
 
-
-
+#Return field index
+def field_index(layer, field):
+    field_index = layer.fields().indexOf(field)
+    return field_index
 
 
 # Checks duplicates and returnes value error

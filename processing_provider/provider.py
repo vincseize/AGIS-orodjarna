@@ -8,6 +8,7 @@ from pathlib import Path
 #from .katvkat import IzvoziKatalogVWord
 from .se_dmv import se_dmv
 from .se_textures import se_textures
+from .check_raster_sources import check_raster_sources
 from ..externals import path
 
 class Provider(QgsProcessingProvider):
@@ -20,8 +21,7 @@ class Provider(QgsProcessingProvider):
         #self.addAlgorithm(Files2Table())
         #self.addAlgorithm(se_dmv())
         self.addAlgorithm(se_textures())
-        # add additional algorithms here
-        # self.addAlgorithm(MyOtherAlgorithm())
+        self.addAlgorithm(check_raster_sources())
         
 
     def id(self):

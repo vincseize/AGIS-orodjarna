@@ -151,13 +151,9 @@ class se_dmv(QgsProcessingAlgorithm):
             )
 
         
-        strparam =QgsProcessingParameterString('raster_type', 'Vrsta površine ("dem" za višine, prazno za teksture)', optional=True, multiLine=False, defaultValue='_dem')
+        strparam =QgsProcessingParameterString('raster_suffix', 'Pripona fotoskic za digitalni model višin)', optional=True, multiLine=False, defaultValue='_dem')
         strparam.setFlags(strparam.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
         self.addParameter(strparam)
-
-        param = QgsProcessingParameterBoolean('assign_crs', self.tr('Nastavi koordinatni sistem (KS) fotoskic na KS sloja z SE -ji '), defaultValue=False)
-        param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
-        self.addParameter(param)
 
         fids = QgsProcessingParameterField('fid', self.tr('fid'), optional=False, type=QgsProcessingParameterField.Any, parentLayerParameterName='su_polygons', allowMultiple=False, defaultValue=self.tr('fid'))
         fids.setFlags(fids.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
@@ -232,11 +228,10 @@ class se_dmv(QgsProcessingAlgorithm):
             context
         )
         
-        assign_crs = parameters['assign_crs']
         su_polygons = parameters['su_polygons']
-        raster_type = parameters['raster_type']
+        raster_suffix = parameters['raster_suffix']
         raster_extension = 'tif'
-
+        
         field_fid = parameters['fid']
         field_su = parameters['su_id']
         field_source = parameters['meas_source']
@@ -378,7 +373,7 @@ class se_dmv(QgsProcessingAlgorithm):
             if str(feature[field_source]).isdigit():   
                 su_layer = fixed_geometries.materialize(QgsFeatureRequest().setFilterFid(feature.id()))
                 #Get raster dem
-                raster_path = '%s\\FS %s%s.%s' %(fotoskice_dict[str(feature[field_source])], feature[field_source], raster_type, raster_extension)
+                raster_path = '%s\\FS %s%s.%s' %(fotoskice_dict[str(feature[field_source])], feature[field_source], raster_suffix, raster_extension)
                 try:       
                     rlayer = QgsRasterLayer(raster_path, 'fs_raster')   
                     if assign_crs and rlayer.crs() != fixed_geometries.crs():

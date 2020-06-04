@@ -6,7 +6,7 @@
 name=AGIS
 qgisMinimumVersion=3.0
 description=This plugin loads useful layers
-version=1.1.0
+version=1.2.2
 author=Matjaž Mori, ZVKDS CPA
 email=matjaz.mori@gmail.com
 
@@ -29,7 +29,7 @@ homepage=https://github.com/matjash/AGIS
 category=AGIS
 icon=icons/agis_toolbox.png
 # experimental flag
-experimental=False
+experimental=True
 
 # deprecated flag (applies to the whole plugin, not just a single version)
 deprecated=False
