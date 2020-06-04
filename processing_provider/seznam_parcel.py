@@ -12,7 +12,11 @@
 """
 
 from qgis.PyQt.QtCore import QCoreApplication
-from qgis.core import (QgsProcessing,
+from qgis.gui import (
+                    QgsMessageBar
+                    )
+from qgis.core import (Qgis,
+                       QgsProcessing,
                        QgsFeatureSink,
                        QgsProcessingException,
                        QgsProcessingAlgorithm,
@@ -105,6 +109,7 @@ class SeznamParcelZnotrajObmojaRaziskave(QgsProcessingAlgorithm):
 
         # We add the input vector features source. It can have any kind of
         # geometry.
+
         self.addParameter(
             QgsProcessingParameterFeatureSource(
                 self.INPUT,
@@ -123,12 +128,17 @@ class SeznamParcelZnotrajObmojaRaziskave(QgsProcessingAlgorithm):
             )
         )
 
+
+
+
     def processAlgorithm(self, parameters, context, feedback):
         """
         Here is where the processing itself takes place.
         """
+   
+        self.iface.messageBar().pushMessage("DOCX module found!", duration=3)
         feedback = QgsProcessingMultiStepFeedback(10, feedback)
-
+      
         # Retrieve the feature source and sink. The 'dest_id' variable is used
         # to uniquely identify the feature sink, and must be included in the
         # dictionary returned by the processAlgorithm function.
@@ -250,3 +260,4 @@ class SeznamParcelZnotrajObmojaRaziskave(QgsProcessingAlgorithm):
         output.triggerRepaint()
 
         return {self.OUTPUT: self.dest_id}
+

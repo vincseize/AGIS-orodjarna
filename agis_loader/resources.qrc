@@ -1,6 +1,0 @@
-<RCC>
-	<qresource prefix="/plugins/agis" >
-        <file>icons/icon_links.png</file>
-		<file>icons/icon_load.png</file>
-	</qresource>
-</RCC>
