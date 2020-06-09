@@ -160,7 +160,7 @@ class se_textures(QgsProcessingAlgorithm):
         fids.setFlags(fids.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
         self.addParameter(fids)
 
-        sus = QgsProcessingParameterField('su_id', self.tr('Koda_id'), optional=False, type=QgsProcessingParameterField.Any, parentLayerParameterName='su_polygons',allowMultiple=False, defaultValue=self.tr('Koda_id'))
+        sus = QgsProcessingParameterField('su_id', self.tr('SE (koda_id)'), optional=False, type=QgsProcessingParameterField.Any, parentLayerParameterName='su_polygons',allowMultiple=False, defaultValue=self.tr('Koda_id'))
         sus.setFlags(sus.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
         self.addParameter(sus)
 
@@ -244,8 +244,11 @@ class se_textures(QgsProcessingAlgorithm):
         #Get unique values of "vir meritve" values
         sources = []
         for f in fixed_geometries.uniqueValues(field_index(fixed_geometries, field_source)):
-            sources.append(int(f))
-        
+            try:
+                sources.append(int(f))
+            except:
+                feedback.pushDebugInfo(self.tr('\"%s\" je neveljaven vir, izpuščam.' %f))
+
         #Get dictionary of raster sources
         fotoskice_dict = {}
         fotoskice_list = []
