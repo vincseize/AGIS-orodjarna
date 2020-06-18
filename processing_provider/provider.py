@@ -19,7 +19,7 @@ class Provider(QgsProcessingProvider):
     def loadAlgorithms(self, *args, **kwargs):
         
         #self.addAlgorithm(Files2Table())
-        #self.addAlgorithm(se_dmv())
+        self.addAlgorithm(se_dmv())
         self.addAlgorithm(se_textures())
         self.addAlgorithm(check_raster_sources())
         

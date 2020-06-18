@@ -152,10 +152,6 @@ class se_textures(QgsProcessingAlgorithm):
                 )
             )
 
-        param = QgsProcessingParameterBoolean('assign_crs', self.tr('Nastavi koordinatni sistem (KS) fotoskic na KS sloja z SE -ji (spremeni izvorne datoteke fotoskic!)'), defaultValue=False)
-        param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
-        self.addParameter(param)
-
         fids = QgsProcessingParameterField('fid', self.tr('fid'), optional=False, type=QgsProcessingParameterField.Any, parentLayerParameterName='su_polygons', allowMultiple=False, defaultValue=self.tr('fid'))
         fids.setFlags(fids.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
         self.addParameter(fids)
@@ -217,7 +213,6 @@ class se_textures(QgsProcessingAlgorithm):
         field_fid = parameters['fid']
         field_su = parameters['su_id']
         field_source = parameters['meas_source']
-        assign_crs = parameters['assign_crs']
 
         #Functions
 
@@ -318,15 +313,6 @@ class se_textures(QgsProcessingAlgorithm):
                     feedback.reportError(self.tr('Težave z nalaganjem: %s' % raster_path))
                     error_raster.append(str(feature[field_source])) 
                 else:
-                    if assign_crs and rlayer.crs() != fixed_geometries.crs():
-                        try: 
-                            rlayer = processing.run('gdal:assignprojection', {
-                                'CRS': fixed_geometries.crs(),
-                                'INPUT': rlayer
-                            }, context=context)                
-                        except:
-                            feedback.reportError(self.tr('Rastru ni bilo mogoče pripisati koordinatnega sistema: %s' % raster_path))
-                
                     # Clip raster by mask SU                            
                     out = rasters_out_folder + '\\' + str(feature[field_su]) + '_' + str(feature[field_source]) + '.tif'                       
                     if Path(out).exists():

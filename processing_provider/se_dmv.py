@@ -236,6 +236,9 @@ class se_dmv(QgsProcessingAlgorithm):
         field_su = parameters['su_id']
         field_source = parameters['meas_source']
         issues_field = self.tr('Napake')
+        raster_min =  self.tr('min višina')
+        raster_max = self.tr('max višina')
+        raster_mean = self.tr('srednja višina')
 
         #Create log file
         logfolder = Path(QgsProject.instance().homePath()) 
@@ -289,6 +292,9 @@ class se_dmv(QgsProcessingAlgorithm):
         #Create sink for results   
         fixed_geometries_provider=fixed_geometries.dataProvider()
         fixed_geometries_provider.addAttributes([QgsField(issues_field, QVariant.String)])
+        fixed_geometries_provider.addAttributes([QgsField(raster_min, QVariant.Double)])
+        fixed_geometries_provider.addAttributes([QgsField(raster_max, QVariant.Double)])
+        fixed_geometries_provider.addAttributes([QgsField(raster_mean, QVariant.Double)])
         fixed_geometries.updateFields()
 
         (sink, dest_id) = self.parameterAsSink(
@@ -317,9 +323,10 @@ class se_dmv(QgsProcessingAlgorithm):
 
         #Check for missing data
         missing_rasters = [f for f in sources if f not in fotoskice_list ]
-        feedback.reportError(self.tr('Manjkajoče fotoskice:'))
-        feedback.reportError(str(missing_rasters))
-        log_write(self.tr('Manjkajoče fotoskice:'), sorted(missing_rasters))
+        if len(missing_rasters) > 0:
+            feedback.reportError(self.tr('Manjkajoče fotoskice:'))
+            feedback.reportError(str(missing_rasters))
+            log_write(self.tr('Manjkajoče fotoskice:'), sorted(missing_rasters))
 
         #Create rasters output directory
         if Path(rasters_out_folder).exists():
@@ -362,12 +369,13 @@ class se_dmv(QgsProcessingAlgorithm):
         #List of points from TS measurments layers 
         su_points = []
 
-        #Drape
-   
-                              
+
+        #Drape                   
         drape_errors = []
         no_source = []
         ffield = field_index(fixed_geometries, issues_field) 
+
+
         for feature in fixed_geometries.getFeatures():
             fixed_geometries.startEditing()
             if str(feature[field_source]).isdigit():   
@@ -375,16 +383,7 @@ class se_dmv(QgsProcessingAlgorithm):
                 #Get raster dem
                 raster_path = '%s\\FS %s%s.%s' %(fotoskice_dict[str(feature[field_source])], feature[field_source], raster_suffix, raster_extension)
                 try:       
-                    rlayer = QgsRasterLayer(raster_path, 'fs_raster')   
-                    if assign_crs and rlayer.crs() != fixed_geometries.crs():
-                        try: 
-                            rlayer = processing.run('gdal:assignprojection', {
-                                'CRS': fixed_geometries.crs(),
-                                'INPUT': rlayer
-                            }, context=context)                    
-                        except:
-                            feedback.reportError(self.tr('Rastru ni bilo mogoče pripisati koordinatnega sistema: %s' % raster_path))
-                
+                    rlayer = QgsRasterLayer(raster_path, 'fs_raster')                  
                     #Drape (set Z value from raster)
                     draped = processing.run("native:setzfromraster", {
                         'BAND': 1,
@@ -413,7 +412,10 @@ class se_dmv(QgsProcessingAlgorithm):
                 
                     # Clip raster by mask SU
                 
-                    field = field_index(draped, issues_field)        
+                    field = field_index(draped, issues_field)     
+                    min_id = field_index(draped, raster_min) 
+                    max_id = field_index(draped, raster_max) 
+                    mean_id = field_index(draped, raster_mean)        
                     for dfeature in draped.getFeatures():    
                         id = dfeature.id()                             
                         out = rasters_out_folder + '/' + str(dfeature[field_su]) +'_' + str(dfeature[field_source]) + '.tif'                                    
@@ -439,35 +441,44 @@ class se_dmv(QgsProcessingAlgorithm):
                                 'Y_RESOLUTION': None,
                                 'OUTPUT': out
                             }, context=context)['OUTPUT']  
+
+                            su_raster = QgsRasterLayer(cliped_raster, 'su_raster') 
+                            provider = su_raster.dataProvider()                  
+                            stats = provider.bandStatistics(1, QgsRasterBandStats.All) 
                             raster_status = 1
+
+                            """
+                            
+                            draped.changeAttributeValue(feature.id(), min_id, self.tr(2))
+                            draped.changeAttributeValue(feature.id(), max_id, self.tr(stats.maximumValue))
+                            draped.changeAttributeValue(feature.id(), mean_id, self.tr(round(stats.mean, 2)))
+                            """
+
+
                         except:
-                            draped.startEditing()  
-                            draped.changeAttributeValue(id, field, self.tr('Ni bilo mogoče obrezati rastra!'))
-                            draped.commitChanges() 
-                            feedback.reportError(self.tr('sssshhhhhhhhssss'))
+                            feedback.reportError(self.tr('Ni bilo mogoče obrezati rastra %s!' %str(dfeature[field_source])))
                             raster_status = 0
 
-                        draped.startEditing()  
+                        draped.startEditing()
                         if no_elevation == 0 and raster_status == 1:      
-                            draped.changeAttributeValue(id, field, self.tr('Brez težav.'))
-                            draped.commitChanges() 
+                            draped.changeAttributeValue(id, field, self.tr('Brez težav.'))                        
+                            draped.changeAttributeValue(id, min_id, round(stats.minimumValue,3))
+                            draped.changeAttributeValue(id, max_id, round(stats.maximumValue,3))
+                            draped.changeAttributeValue(id, mean_id, round(stats.mean,3))
+                            draped.commitChanges()
                         elif no_elevation == 0 and raster_status == 0:      
                             draped.changeAttributeValue(id, field, self.tr('Višine so ok, vendar ni bilo mogoče obrezati rastra!'))
                             draped.commitChanges() 
                         else: 
-                            draped.changeAttributeValue(id, field, '%s od %s verteksov brez nadmorske višine!!' % (no_elevation,vertices)  )
+                            draped.changeAttributeValue(id, field, '%s od %s verteksov brez nadmorske višine!' % (no_elevation,vertices)  )
                             draped.commitChanges()  
                     for fdraped in draped.getFeatures():
                         sink.addFeature(fdraped, QgsFeatureSink.FastInsert)  
                              
                 except:
-                    drape_errors.append('%s:%s' %(str(feature[field_su]), str(feature[field_source])))      
-                    a = feature.id()
-                    b = feature[field_fid]
-                    c =field_index(fixed_geometries, issues_field)
-                
+                    drape_errors.append('SE %s:FS %s' %(str(feature[field_su]), str(feature[field_source])))      
                     fixed_geometries.startEditing()
-                    fixed_geometries.changeAttributeValue(a, b, c)
+                    fixed_geometries.changeAttributeValue(feature.id(), ffield, 'Težave z rastrom, preveri poimenovanje')
                     fixed_geometries.commitChanges()
                     sink.addFeature(feature, QgsFeatureSink.FastInsert)               
                     
@@ -480,7 +491,8 @@ class se_dmv(QgsProcessingAlgorithm):
                 sink.addFeature(feature, QgsFeatureSink.FastInsert) 
             else:  
                 fixed_geometries.startEditing()
-                fixed_geometries.changeAttributeValue(feature.id(), ffield, 'aaaaaaaaaaaa')
+                fixed_geometries.changeAttributeValue(feature.id(), ffield, 'Napaka, vir meritev ne obstaja!')
+
                 #feedback.reportError(self.tr(feature[field_source]))   
                 #----
                 fixed_geometries.commitChanges()
@@ -488,70 +500,19 @@ class se_dmv(QgsProcessingAlgorithm):
                 sink.addFeature(feature, QgsFeatureSink.FastInsert)  
 
 
-        feedback.pushInfo(self.tr('Source errors: %s')  %str(no_source))
-        feedback.reportError(self.tr('Drape errors: %s')  %str(drape_errors))
-        feedback.reportError(self.tr('TS Sources: %s')  %str(points_source))
-        feedback.reportError(self.tr('Vse ok do sem'))     
+
+        if len(no_source) > 0:
+            feedback.pushInfo(self.tr('Source errors: %s')  %str(no_source))
+        if len(drape_errors) > 0:
+            feedback.reportError(self.tr('Drape errors: %s')  %str(drape_errors))
+            log_write(self.tr('Neuspešno pripisane višine: '), str(drape_errors))
 
         
-       
-        # If source was not found, throw an exception to indicate that the algorithm
-        # encountered a fatal error. The exception text can be any string, but in this
-        # case we use the pre-built invalidSourceError method to return a standard
-        # helper text for when a source cannot be evaluated
-       
-        """
-        if source is None:
-            raise QgsProcessingException(self.invalidSourceError(parameters, self.INPUT))
-        """    
 
-     
-        # If sink was not created, throw an exception to indicate that the algorithm
-        # encountered a fatal error. The exception text can be any string, but in this
-        # case we use the pre-built invalidSinkError method to return a standard
-        # helper text for when a sink cannot be evaluated
-        if sink is None:
-            raise QgsProcessingException(self.invalidSinkError(parameters, self.OUTPUT))
+        #feedback.reportError(self.tr('TS Sources: %s')  %str(points_source))
+        #feedback.reportError(self.tr('Vse ok do sem'))     
 
-        # Compute the number of steps to display within the progress bar and
-        # get features from source
-       
-        """
-        total = 100.0 / source.featureCount() if source.featureCount() else 0
-        features = source.getFeatures()
-
-        for current, feature in enumerate(features):
-
-
-            # Update the progress bar
-            feedback.setProgress(int(current * total))
-        """
-
-        # To run another Processing algorithm as part of this algorithm, you can use
-        # processing.run(...). Make sure you pass the current context and feedback
-        # to processing.run to ensure that all temporary layer outputs are available
-        # to the executed algorithm, and that the executed algorithm can send feedback
-        # reports to the user (and correctly handle cancellation and progress reports!)
-        if False:
-            buffered_layer = processing.run("native:buffer", {
-                'INPUT': dest_id,
-                'DISTANCE': 1.5,
-                'SEGMENTS': 5,
-                'END_CAP_STYLE': 0,
-                'JOIN_STYLE': 0,
-                'MITER_LIMIT': 2,
-                'DISSOLVE': False,
-                'OUTPUT': 'memory:'
-            }, context=context, feedback=feedback)['OUTPUT']
-
-        # Return the results of the algorithm. In this case our only result is
-        # the feature sink which contains the processed features, but some
-        # algorithms may return multiple feature sinks, calculated numeric
-        # statistics, etc. These should all be included in the returned
-        # dictionary, with keys matching the feature corresponding parameter
-        # or output names.
-
-        log_write(processes_log=processes_log)
+        #log_write(processes_log=processes_log)
         log_write(end_log='\n')
         webbrowser.open(logfile)
 
