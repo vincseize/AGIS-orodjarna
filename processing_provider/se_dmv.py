@@ -233,12 +233,14 @@ class se_dmv(QgsProcessingAlgorithm):
         raster_extension = 'tif'
         
         field_fid = parameters['fid']
-        field_su = parameters['su_id']
+        field_koda = parameters['su_id']
+        field_su = self.tr('SE')
         field_source = parameters['meas_source']
         issues_field = self.tr('Napake')
         raster_min =  self.tr('min višina')
         raster_max = self.tr('max višina')
         raster_mean = self.tr('srednja višina')
+        raster_stddev = self.tr('standardni odklon')
 
         #Create log file
         logfolder = Path(QgsProject.instance().homePath()) 
@@ -290,11 +292,17 @@ class se_dmv(QgsProcessingAlgorithm):
             return {}
     
         #Create sink for results   
+        fixed_geometries.startEditing()
+        for field in fixed_geometries.fields():
+            if field.name() == field_koda:
+                idx = fixed_geometries.fields().indexFromName(field.name())
+                fixed_geometries.renameAttribute(idx, field_su)
         fixed_geometries_provider=fixed_geometries.dataProvider()
         fixed_geometries_provider.addAttributes([QgsField(issues_field, QVariant.String)])
         fixed_geometries_provider.addAttributes([QgsField(raster_min, QVariant.Double)])
         fixed_geometries_provider.addAttributes([QgsField(raster_max, QVariant.Double)])
         fixed_geometries_provider.addAttributes([QgsField(raster_mean, QVariant.Double)])
+        fixed_geometries_provider.addAttributes([QgsField(raster_stddev, QVariant.Double)])
         fixed_geometries.updateFields()
 
         (sink, dest_id) = self.parameterAsSink(
@@ -362,7 +370,7 @@ class se_dmv(QgsProcessingAlgorithm):
             fixed_geometries.removeSelection()
 
         merged_features = [ (i) for i in set(merged_features) ]
-        log_write(self.tr('Združene SE:'), sorted(merged_features))        
+        log_write(self.tr('Združeni poligoni:'), sorted(merged_features))        
      
 
         points_source = []
@@ -415,7 +423,9 @@ class se_dmv(QgsProcessingAlgorithm):
                     field = field_index(draped, issues_field)     
                     min_id = field_index(draped, raster_min) 
                     max_id = field_index(draped, raster_max) 
-                    mean_id = field_index(draped, raster_mean)        
+                    mean_id = field_index(draped, raster_mean)   
+                    stddev_id = field_index(draped, raster_stddev)  
+     
                     for dfeature in draped.getFeatures():    
                         id = dfeature.id()                             
                         out = rasters_out_folder + '/' + str(dfeature[field_su]) +'_' + str(dfeature[field_source]) + '.tif'                                    
@@ -447,14 +457,6 @@ class se_dmv(QgsProcessingAlgorithm):
                             stats = provider.bandStatistics(1, QgsRasterBandStats.All) 
                             raster_status = 1
 
-                            """
-                            
-                            draped.changeAttributeValue(feature.id(), min_id, self.tr(2))
-                            draped.changeAttributeValue(feature.id(), max_id, self.tr(stats.maximumValue))
-                            draped.changeAttributeValue(feature.id(), mean_id, self.tr(round(stats.mean, 2)))
-                            """
-
-
                         except:
                             feedback.reportError(self.tr('Ni bilo mogoče obrezati rastra %s!' %str(dfeature[field_source])))
                             raster_status = 0
@@ -465,6 +467,7 @@ class se_dmv(QgsProcessingAlgorithm):
                             draped.changeAttributeValue(id, min_id, round(stats.minimumValue,3))
                             draped.changeAttributeValue(id, max_id, round(stats.maximumValue,3))
                             draped.changeAttributeValue(id, mean_id, round(stats.mean,3))
+                            draped.changeAttributeValue(id, stddev_id, round(stats.stdDev,3))
                             draped.commitChanges()
                         elif no_elevation == 0 and raster_status == 0:      
                             draped.changeAttributeValue(id, field, self.tr('Višine so ok, vendar ni bilo mogoče obrezati rastra!'))
@@ -498,6 +501,7 @@ class se_dmv(QgsProcessingAlgorithm):
                 fixed_geometries.commitChanges()
                 no_source.append(str(feature[field_source]))  
                 sink.addFeature(feature, QgsFeatureSink.FastInsert)  
+                
 
 
 
