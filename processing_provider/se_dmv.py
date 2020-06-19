@@ -425,7 +425,7 @@ class se_dmv(QgsProcessingAlgorithm):
                     max_id = field_index(draped, raster_max) 
                     mean_id = field_index(draped, raster_mean)   
                     stddev_id = field_index(draped, raster_stddev)  
-     
+        
                     for dfeature in draped.getFeatures():    
                         id = dfeature.id()                             
                         out = rasters_out_folder + '/' + str(dfeature[field_su]) +'_' + str(dfeature[field_source]) + '.tif'                                    
@@ -477,14 +477,14 @@ class se_dmv(QgsProcessingAlgorithm):
                             draped.commitChanges()  
                     for fdraped in draped.getFeatures():
                         sink.addFeature(fdraped, QgsFeatureSink.FastInsert)  
-                             
+                                
                 except:
                     drape_errors.append('SE %s:FS %s' %(str(feature[field_su]), str(feature[field_source])))      
                     fixed_geometries.startEditing()
                     fixed_geometries.changeAttributeValue(feature.id(), ffield, 'Težave z rastrom, preveri poimenovanje')
                     fixed_geometries.commitChanges()
                     sink.addFeature(feature, QgsFeatureSink.FastInsert)               
-                    
+                 
             elif str(feature[field_su]) in su_points:
                 points_source.append(str(feature[field_source]))  
                 fixed_geometries.startEditing()
