@@ -5,7 +5,7 @@ from pathlib import Path
 
 #import algorithm
 #from .fileslist import Files2Table
-#from .katvkat import IzvoziKatalogVWord
+from .se_word_catalog import StratiWordCatalog
 from .se_dmv import se_dmv
 from .se_textures import se_textures
 from .check_raster_sources import check_raster_sources
@@ -18,7 +18,7 @@ class Provider(QgsProcessingProvider):
         
     def loadAlgorithms(self, *args, **kwargs):
         
-        #self.addAlgorithm(Files2Table())
+        self.addAlgorithm(StratiWordCatalog())
         self.addAlgorithm(se_dmv())
         self.addAlgorithm(se_textures())
         self.addAlgorithm(check_raster_sources())
