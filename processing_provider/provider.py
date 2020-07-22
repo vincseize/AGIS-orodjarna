@@ -4,12 +4,12 @@ import os
 from pathlib import Path
 
 #import algorithm
-#from .fileslist import Files2Table
 from .se_word_catalog import StratiWordCatalog
 from .se_dmv import se_dmv
 from .se_textures import se_textures
 from .check_raster_sources import check_raster_sources
 from ..externals import path
+from .photo_get_list import PhotoGetList
 
 class Provider(QgsProcessingProvider):
     def __init__(self):
@@ -22,6 +22,7 @@ class Provider(QgsProcessingProvider):
         self.addAlgorithm(se_dmv())
         self.addAlgorithm(se_textures())
         self.addAlgorithm(check_raster_sources())
+        self.addAlgorithm(PhotoGetList())
         
 
     def id(self):

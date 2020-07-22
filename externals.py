@@ -38,6 +38,6 @@ def checkDuplicates(features, name, feedback):
         raise ValueError
 
 def value_error(id, value, feedback):
-    feedback.reportError("Pri %s manjaka vrednost  %s!" % (id, value),False)
+    feedback.reportError("Pri %s manjaka vrednost  \"%s\". Prekinjam." % (id, value),False)
     raise ValueError
 
