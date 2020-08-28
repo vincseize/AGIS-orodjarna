@@ -14,7 +14,7 @@ Matjaž Mori, ZVKDS CPA
 
 """
 
-from PyQt5.QtCore import QCoreApplication, QObject,QFileInfo
+from PyQt5.QtCore import QCoreApplication, QObject,QFileInfo,QVariant
 from PyQt5.QtGui import QIcon
 from qgis.utils import iface
 from qgis.core import (Qgis,
@@ -25,6 +25,11 @@ from qgis.core import (Qgis,
                        QgsProcessingAlgorithm,
                        QgsProcessingParameterFile,
                        QgsApplication,
+                       QgsFields,
+                       QgsField,
+                       QgsProject,
+                       QgsFeature,
+                       QgsProcessingParameterFeatureSink,
                        NULL)
 import processing
 import datetime
@@ -34,6 +39,7 @@ import os
 from ..externals import path, checkDuplicates, value_error
 from pathlib import Path
 
+import exifread
 
 try:
     import exif
@@ -50,7 +56,7 @@ class PhotoGetList(QgsProcessingAlgorithm):
     This is algorithm that takes a folder and creates list of files with exif attributes.
     """
     PHOTO_FOLDER = 'PHOTO_FOLDER'
-
+    OUTPUT = 'OUTPUT'
 
     # Constants used to refer to parameters and outputs. They will be
     # used when calling the algorithm from another algorithm, or when
@@ -138,6 +144,31 @@ class PhotoGetList(QgsProcessingAlgorithm):
                 defaultValue=None
             )
         )
+        self.addParameter(
+            QgsProcessingParameterFeatureSink(
+                self.OUTPUT,
+                self.tr('Files')
+            )
+        )
+
+
+
+    def readDir(self, dir, feedback): 
+        files_count = 0
+        for dirpath, dirnames, filenames in os.walk(dir):
+            for name in filenames:
+                file_path = os.path.join(dirpath, name)
+                extension = os.path.splitext(name)[1].lower()
+                if extension in ('.tif', '.jpg', '.png', '.raw', '.nef', '.dng', '.arw'):
+                    self.listOfFiles.append(file_path) 
+                else:
+                    feedback.pushInfo('Ni fotografija: %s' % file_path)
+                    files_count = files_count + 1
+
+        
+        feedback.pushInfo('Najdenih fotografij: %s.' % len(self.listOfFiles))               
+        if files_count > 0:
+            feedback.pushInfo("%s datotek, ki niso fotografije!" % files_count)
 
 
     def processAlgorithm(self, parameters, context, feedback):
@@ -145,11 +176,88 @@ class PhotoGetList(QgsProcessingAlgorithm):
         Here is where the processing itself takes place.
         """
 
+        photos_folder =  parameters[self.PHOTO_FOLDER]
+        feedback.pushInfo('Berem mapo s fotografijami: %s' % str(photos_folder))
+
+    
+        fields = QgsFields()
+        fields.append( QgsField( "fid", QVariant.Int ) )         #0
+        fields.append( QgsField( "ime", QVariant.String ) )      #1
+        fields.append( QgsField( "sektor", QVariant.String ) )   #2
+        fields.append( QgsField( "kvadrant", QVariant.String ) ) #3
+        fields.append( QgsField( "sonda", QVariant.String ) )    #4
+        fields.append( QgsField( "pogled", QVariant.String ) )   #5
+        fields.append( QgsField( "vrsta", QVariant.String ) )    #6
+        fields.append( QgsField( "oznake", QVariant.Bool ) )     #7
+        fields.append( QgsField( "žanr", QVariant.String ) )     #8
+        fields.append( QgsField( "avtor", QVariant.String ) )     #9
+        fields.append( QgsField( "opombe", QVariant.String ) )     #10
+        fields.append( QgsField( "izbriši", QVariant.Bool ) )    #11
+        fields.append( QgsField( "VZ", QVariant.String ) )     #12
+        fields.append( QgsField( "FL", QVariant.String ) )     #13
+        fields.append( QgsField( "datum posnetka", QVariant.DateTime ) )     #14
+        fields.append( QgsField( "relativna pot", QVariant.String ) )     #15
+        fields.append( QgsField( "pot", QVariant.String ) )     #16
+
+
+        crsProject = QgsProject.instance().crs()        
+        (sink, dest_id) = self.parameterAsSink(parameters, self.OUTPUT,
+            context, fields, 100, crsProject) #100=WKBUnknown
+        countFiles=0
+        
+
+   
+        self.listOfFiles = []
+        self.readDir(photos_folder, feedback)    
+
+
+        total = 100.0 / len(self.listOfFiles)
+
+
+
+        for iFeat, file_path in enumerate(self.listOfFiles):   
+            feedback.setProgress(int(iFeat * total))    
+            filename_w_ext = os.path.basename(file_path)
+            filename, file_extension = os.path.splitext(filename_w_ext)
+            feedback.pushInfo(filename)
+            #Create new Feature
+            newFeat = QgsFeature(fields)
+            newFeat.setAttribute("fid", iFeat)
+            newFeat.setAttribute("ime", filename)
+
+            with open(file_path, 'rb') as image_file:
+                tags = exifread.process_file(image_file, stop_tag="EXIF DateTimeOriginal")
+                date = tags["EXIF DateTimeOriginal"]     
+                newFeat.setAttribute("datum posnetka", str(date)) #14
+            """
+            with open(file_path, 'rb') as image_file:
+                feedback.pushInfo('3')
+                my_image = Image(image_file)           
+                feedback.pushInfo('4')      
+                if my_image.has_exif:
+                    date = my_image.datetime_original
+                    newFeat.setAttribute("datum posnetka", date)   #14   
+            """
+            newFeat.setAttribute("pot", file_path)
+            # Add a feature in the sink
+            sink.addFeature(newFeat, QgsFeatureSink.FastInsert)
+            countFiles=countFiles+1
+     
+
+        msgInfo=self.tr(str(countFiles) + " fotografij dodanih v seznam.")
+        feedback.pushInfo(msgInfo)
+    
+
+
         # Retrieve the feature source and sink. The 'dest_id' variable is used
         # to uniquely identify the feature sink, and must be included in the
         # dictionary returned by the processAlgorithm function.
-       
+    
+   
+        #feedback.pushInfo('Seznam že obstaja, posodabljam...')
 
-        results ={}
+
+
+        results ={self.OUTPUT: dest_id}
 
         return results
