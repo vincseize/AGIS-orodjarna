@@ -10,6 +10,7 @@ from .se_textures import se_textures
 from .check_raster_sources import check_raster_sources
 from ..externals import path
 from .photo_get_list import PhotoGetList
+from .photo_export  import PhotoExport
 
 class Provider(QgsProcessingProvider):
     def __init__(self):
@@ -23,7 +24,7 @@ class Provider(QgsProcessingProvider):
         self.addAlgorithm(se_textures())
         self.addAlgorithm(check_raster_sources())
         self.addAlgorithm(PhotoGetList())
-        
+        #self.addAlgorithm(PhotoExport())
 
     def id(self):
         return 'agis_toolbox'

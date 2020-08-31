@@ -6,7 +6,7 @@
 name=AGIS
 qgisMinimumVersion=3.0
 description=This plugin loads useful layers
-version=1.4.0
+version=1.4.1
 author=Matjaž Mori, ZVKDS CPA
 email=matjaz.mori@gmail.com
 
@@ -20,7 +20,8 @@ repository=https://github.com/matjash/AGIS
 
 hasProcessingProvider=no
 # Uncomment the following line and add your changelog:
-# changelog=v1.4: Dodano orodje za Katalog SE-jev
+# changelog=v1.4.1: Dodan prvi del orodja za izdelavo Seznama fotografij
+            v1.4: Dodano orodje za Katalog SE-jev
             v1.3:Dodano orodje za seznam fotografij 
             v1.2: dodana orodja za delo s fotoskicami
             
