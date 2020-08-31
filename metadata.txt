@@ -4,7 +4,7 @@
 
 [general]
 name=AGIS
-qgisMinimumVersion=3.0
+qgisMinimumVersion=3.6
 description=This plugin loads useful layers
 version=1.4.1
 author=Matjaž Mori, ZVKDS CPA

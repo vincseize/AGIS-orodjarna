@@ -17,6 +17,7 @@ from PyQt5.QtCore import QCoreApplication, QObject,QFileInfo,QVariant
 from PyQt5.QtGui import QIcon
 from qgis.utils import iface
 from qgis.core import (Qgis,
+                       QgsProcessingParameterString,
                        QgsProcessing,
                        QgsFeatureSink,
                        QgsMessageLog,
@@ -31,14 +32,16 @@ from qgis.core import (Qgis,
                        QgsProcessingParameterFeatureSink,
                        QgsVectorLayer,
                        QgsFeatureRequest,
+                       QgsProcessingUtils,
                        NULL)
 import processing
 import datetime
 import sys
 import os
+from shutil import copyfile
 
 from pathlib import Path
-from ..externals import field_index
+from ..externals import path, field_index
 
 class PhotoExport(QgsProcessingAlgorithm):
     """
@@ -131,12 +134,29 @@ class PhotoExport(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterFile(
                 self.PHOTO_FOLDER, 
-                self.tr('Foto folder'), 
+                self.tr('Fotoarhiv'), 
                 behavior=QgsProcessingParameterFile.Folder, 
                 fileFilter='All files (*.*)', 
                 defaultValue=None
             )
         )
+
+        try:
+            default_code = os.path.basename(QgsProject.instance().fileName())
+            default_code = str(default_code)[:7]
+        except:
+            default_code = ''
+
+
+        self.addParameter(
+            QgsProcessingParameterString(
+                'project_code', 
+                'Koda projekta', 
+                multiLine=False, 
+                defaultValue=default_code
+            )
+        )
+
 
         self.addParameter(
             QgsProcessingParameterFeatureSink(
@@ -168,13 +188,17 @@ class PhotoExport(QgsProcessingAlgorithm):
         """
 
         photos_folder =  parameters[self.PHOTO_FOLDER]
+        project_code = parameters['project_code']
         feedback.pushInfo('Berem mapo s fotografijami: %s' % str(photos_folder))
+        base = os.path.basename(photos_folder)
+        if base != 'Fotoarhiv':
+            raise Exception("Ni bila izbrana mapa Fotoarhiv!")
 
 
+        # Find and load geopackage photos list
         geopackage = self.readDir(photos_folder, feedback) 
         geopackage_path = str(geopackage[0])
         geopackage_layer = str(geopackage[1])
-
 
         gpkg_layer = geopackage_path + "|layername=" + geopackage_layer
         feedback.pushInfo('Nalagam sloj: \n %s' % gpkg_layer)
@@ -184,6 +208,8 @@ class PhotoExport(QgsProcessingAlgorithm):
         else:
             features = vlayer.getFeatures()
 
+
+        #Create temp layer for removed photos
 
         (sink, dest_id) = self.parameterAsSink(
                     parameters,
@@ -198,8 +224,10 @@ class PhotoExport(QgsProcessingAlgorithm):
 
 
 
+
+        # Get list of features sorted by date taken
         request = QgsFeatureRequest()
-        # set order by field
+
         clause = QgsFeatureRequest.OrderByClause('datum posnetka', ascending=True)
         orderby = QgsFeatureRequest.OrderBy([clause])
         request.setOrderBy(orderby)
@@ -207,26 +235,81 @@ class PhotoExport(QgsProcessingAlgorithm):
 
  
 
-        #Remove  features to be deleted
+
+        #Get unique values of "žanr" values
+        photo_type = vlayer.fields().indexOf('žanr')
+        types = vlayer.uniqueValues(photo_type)
+        if NULL in types:
+            try:
+                delete_folder = os.path.join(photos_folder, 'Za izbrisat')
+                os.mkdir(delete_folder)
+                types.remove(NULL)
+            except:
+                raise Exception("Mape %s ni bilo mogoče ustvariti" % delete_folder)
+        if '' in types:
+            try:
+                delete_folder = os.path.join(photos_folder, 'Za izbrisat')
+                os.mkdir(delete_folder)
+                types.remove(NULL)
+            except:
+                raise Exception("Mape %s ni bilo mogoče ustvariti" % delete_folder)
+
+        for photo_type in types:
+            folder = os.path.join(photos_folder, photo_type)
+            try:
+                os.mkdir(folder)
+            except:
+                raise Exception("Mape %s ni bilo mogoče ustvariti" % folder)
+        
+
+
+        #Remove features to be deleted
+        counter = 0
+        counter_docu = 0
+        counter_nedocu = 0
+        counter_del = 0
+        counter_deleted = 0
+        total = vlayer.featureCount()
+        feedback.pushInfo('Št. vseh fotografij: %s' % str(total))
+
+
         for current, feature in enumerate(features):
-            field = field_index(vlayer, 'izbriši')
+            field_delete = field_index(vlayer, 'izbriši')
+            field_path = field_index(vlayer, 'pot')
+            photo_type = field_index(vlayer, 'žanr')
+        
+            photo_path =  feature[field_path]
+            photo_name = os.path.splitext(os.path.basename(photo_path))[0]
+            photo_ext = os.path.splitext(os.path.basename(photo_path))[1]
+        
             date = field_index(vlayer, 'datum posnetka')
-            feedback.pushInfo(str(feature[date]))
-            if feature[field]: 
+            if feature[field_delete]: 
+                counter_deleted += 1
                 sink.addFeature(feature, QgsFeatureSink.FastInsert)
+                photo_name = os.path.basename(photo_path)
+                dst = os.path.join(delete_folder, photo_name )
+                #copyfile(feature[field_path], dst)
                 #vlayer.deleteFeature(feature.id())
+            else:
+                counter += 1    
+                if feature[photo_type] == 'Strokovni':
+                    counter_docu += 1           
+                elif feature[photo_type] == 'Nedokumentarni':
+                    counter_nedocu += 1
+                elif feature[photo_type] == 'Delovni':
+                    counter_del += 1
+
 
             # Stop the algorithm if cancel button has been clicked
             if feedback.isCanceled():
                 break
 
-
-
-            default_in_older = Path(QgsProject.instance().homePath())/self.tr('Fotoskice')
-
         #Remove  
        
-
+        feedback.pushInfo('Št. vseh fotografij za izbrisat: %s' % str(counter_deleted))
+        feedback.pushInfo('Št. vseh fotografij dokumentarnih fotografij: %s' % str(counter_docu))
+        feedback.pushInfo('Št. vseh fotografij nedokumentarnih fotografij: %s' % str(counter_nedocu))
+        feedback.pushInfo('Št. vseh fotografij delovnih fotografij: %s' % str(counter_del))
         """    
         vlayer.startEditing()
         for feature in features:
@@ -312,6 +395,18 @@ class PhotoExport(QgsProcessingAlgorithm):
         
         return 
         """
-        results ={self.OUTPUT: dest_id}
-       
-        return results
+        self.dest_id = dest_id
+        return {self.OUTPUT: dest_id}
+
+    def postProcessAlgorithm(self, context, feedback):
+        """
+        PostProcessing Tasks to define the Symbology
+        """
+        output = QgsProcessingUtils.mapLayerFromString(self.dest_id, context)
+        style = path('styles')/'Seznam fotografij.qml'
+        feedback.pushInfo(str(style))
+
+        output.loadNamedStyle(str(style))
+        output.triggerRepaint()
+
+        return {self.OUTPUT: self.dest_id}
