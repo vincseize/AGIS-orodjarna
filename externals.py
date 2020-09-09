@@ -41,3 +41,7 @@ def value_error(id, value, feedback):
     feedback.reportError("Pri %s manjaka vrednost  \"%s\". Prekinjam." % (id, value),False)
     raise ValueError
 
+def field_index(layer, field):
+    field_index = layer.fields().indexOf(field)
+    return field_index
+

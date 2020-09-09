@@ -17,7 +17,7 @@ from PyQt5.QtCore import QCoreApplication, QObject,QFileInfo,QVariant
 from PyQt5.QtGui import QIcon
 from qgis.utils import iface
 from qgis.core import (Qgis,
-                       QgsProcessingUtils,
+                       QgsProcessingParameterString,
                        QgsProcessing,
                        QgsFeatureSink,
                        QgsMessageLog,
@@ -30,33 +30,26 @@ from qgis.core import (Qgis,
                        QgsProject,
                        QgsFeature,
                        QgsProcessingParameterFeatureSink,
+                       QgsVectorLayer,
+                       QgsFeatureRequest,
+                       QgsProcessingUtils,
                        NULL)
 import processing
 import datetime
 import sys
 import os
+from shutil import copyfile
 
-from ..externals import path, checkDuplicates, value_error
 from pathlib import Path
+from ..externals import path, field_index
 
-import exifread
-
-try:
-    import exif
-    from exif import Image
-    iface.messageBar().pushMessage("EXIF module found!", duration=3)
-except:
-    import subprocess
-    subprocess.check_call(['python', '-m', 'pip', 'install', 'exif'])
-    iface.messageBar().pushMessage("Error", "No exif module found, installing!", level=Qgis.Critical, duration=10)
-
-
-class PhotoGetList(QgsProcessingAlgorithm):
+class PhotoExport(QgsProcessingAlgorithm):
     """
     This is algorithm that takes a folder and creates list of files with exif attributes.
     """
     PHOTO_FOLDER = 'PHOTO_FOLDER'
     OUTPUT = 'OUTPUT'
+    
 
     # Constants used to refer to parameters and outputs. They will be
     # used when calling the algorithm from another algorithm, or when
@@ -69,7 +62,7 @@ class PhotoGetList(QgsProcessingAlgorithm):
         return QCoreApplication.translate('Processing', string)
 
     def createInstance(self):
-        return PhotoGetList()
+        return PhotoExport()
 
     def name(self):
         """
@@ -79,14 +72,14 @@ class PhotoGetList(QgsProcessingAlgorithm):
         lowercase alphanumeric characters only and no spaces or other
         formatting characters.
         """
-        return 'photo_list'
+        return 'photo_export'
 
     def displayName(self):
         """
         Returns the translated algorithm name, which should be used for any
         user-visible display of the algorithm name.
         """
-        return self.tr('Pripravi seznam fotografij')
+        return self.tr('Izvozi seznam fotografij v XLS')
 
     def group(self):
         """
@@ -115,9 +108,10 @@ class PhotoGetList(QgsProcessingAlgorithm):
         """
 
         help = ("""
-            Izberemo mapo kjer so vse fotografije projekta. Fotografije so lahko v podmapah, ni pa potrebno.
-
-            Priporočljivo je izbrati mapo \"Fotoarhiv\", vse nove fotografije morajo biti v podmapi \"Začasno\"
+            Izberemo mapo "Fotoarhiv"!
+            Orodje bo poiskalo geopaket s seznamom fotografij, preimenovalo fotografije, jih pospravilo v mape in sestavilo -xls datoteko Seznam fotografij. 
+            
+            Mapa mora vsebovati le en geopaket!!
             <h3></h3>
             <ul>
             </ul>
@@ -140,19 +134,36 @@ class PhotoGetList(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterFile(
                 self.PHOTO_FOLDER, 
-                self.tr('Mapa s fotografijami'), 
+                self.tr('Fotoarhiv'), 
                 behavior=QgsProcessingParameterFile.Folder, 
                 fileFilter='All files (*.*)', 
                 defaultValue=None
             )
         )
+
+        try:
+            default_code = os.path.basename(QgsProject.instance().fileName())
+            default_code = str(default_code)[:7]
+        except:
+            default_code = ''
+
+
         self.addParameter(
-            QgsProcessingParameterFeatureSink(
-                self.OUTPUT,
-                self.tr('Files')
+            QgsProcessingParameterString(
+                'project_code', 
+                'Koda projekta', 
+                multiLine=False, 
+                defaultValue=default_code
             )
         )
 
+
+        self.addParameter(
+            QgsProcessingParameterFeatureSink(
+                self.OUTPUT,
+                self.tr('Fotografije pripravljene za izbrisat')
+            )
+        )
 
 
     def readDir(self, dir, feedback): 
@@ -161,17 +172,15 @@ class PhotoGetList(QgsProcessingAlgorithm):
             for name in filenames:
                 file_path = os.path.join(dirpath, name)
                 extension = os.path.splitext(name)[1].lower()
-                if extension in ('.tif', '.jpg', '.png', '.raw', '.nef', '.dng', '.arw'):
-                    self.listOfFiles.append(file_path) 
-                else:
-                    feedback.pushInfo('Ni fotografija: %s' % file_path)
+                if extension in ('.gpkg'):
+                    photos_list_path = file_path 
+                    layer_name = os.path.splitext(name)[0]
                     files_count = files_count + 1
-
-        
-        feedback.pushInfo('Najdenih fotografij: %s.' % len(self.listOfFiles))               
-        if files_count > 0:
-            feedback.pushInfo("%s datotek, ki niso fotografije!" % files_count)
-
+      
+        if files_count > 1:
+            raise Exception("V mapi fotoarhiv je več geopaketov, dovoljen je le eden!")
+        else:
+            return (photos_list_path, layer_name)
 
     def processAlgorithm(self, parameters, context, feedback):
         """
@@ -179,9 +188,136 @@ class PhotoGetList(QgsProcessingAlgorithm):
         """
 
         photos_folder =  parameters[self.PHOTO_FOLDER]
+        project_code = parameters['project_code']
         feedback.pushInfo('Berem mapo s fotografijami: %s' % str(photos_folder))
+        base = os.path.basename(photos_folder)
+        if base != 'Fotoarhiv':
+            raise Exception("Ni bila izbrana mapa Fotoarhiv!")
 
-    
+
+        # Find and load geopackage photos list
+        geopackage = self.readDir(photos_folder, feedback) 
+        geopackage_path = str(geopackage[0])
+        geopackage_layer = str(geopackage[1])
+
+        gpkg_layer = geopackage_path + "|layername=" + geopackage_layer
+        feedback.pushInfo('Nalagam sloj: \n %s' % gpkg_layer)
+        vlayer = QgsVectorLayer(gpkg_layer, geopackage_layer, "ogr")
+        if not vlayer.isValid():
+            raise Exception("Seznama fotografij ni bilo mogoče prebrati!")
+        else:
+            features = vlayer.getFeatures()
+
+
+        #Create temp layer for removed photos
+
+        (sink, dest_id) = self.parameterAsSink(
+                    parameters,
+                    self.OUTPUT,
+                    context,
+                    vlayer.fields(),
+                    vlayer.wkbType(),
+                    vlayer.sourceCrs()
+                )
+        if sink is None:
+            raise QgsProcessingException(self.invalidSinkError(parameters, self.OUTPUT))
+
+
+
+
+        # Get list of features sorted by date taken
+        request = QgsFeatureRequest()
+
+        clause = QgsFeatureRequest.OrderByClause('datum posnetka', ascending=True)
+        orderby = QgsFeatureRequest.OrderBy([clause])
+        request.setOrderBy(orderby)
+        features = vlayer.getFeatures(request)
+
+ 
+
+
+        #Get unique values of "žanr" values
+        photo_type = vlayer.fields().indexOf('žanr')
+        types = vlayer.uniqueValues(photo_type)
+        if NULL in types:
+            try:
+                delete_folder = os.path.join(photos_folder, 'Za izbrisat')
+                os.mkdir(delete_folder)
+                types.remove(NULL)
+            except:
+                raise Exception("Mape %s ni bilo mogoče ustvariti" % delete_folder)
+        if '' in types:
+            try:
+                delete_folder = os.path.join(photos_folder, 'Za izbrisat')
+                os.mkdir(delete_folder)
+                types.remove(NULL)
+            except:
+                raise Exception("Mape %s ni bilo mogoče ustvariti" % delete_folder)
+
+        for photo_type in types:
+            folder = os.path.join(photos_folder, photo_type)
+            try:
+                os.mkdir(folder)
+            except:
+                raise Exception("Mape %s ni bilo mogoče ustvariti" % folder)
+        
+
+
+        #Remove features to be deleted
+        counter = 0
+        counter_docu = 0
+        counter_nedocu = 0
+        counter_del = 0
+        counter_deleted = 0
+        total = vlayer.featureCount()
+        feedback.pushInfo('Št. vseh fotografij: %s' % str(total))
+
+
+        for current, feature in enumerate(features):
+            field_delete = field_index(vlayer, 'izbriši')
+            field_path = field_index(vlayer, 'pot')
+            photo_type = field_index(vlayer, 'žanr')
+        
+            photo_path =  feature[field_path]
+            photo_name = os.path.splitext(os.path.basename(photo_path))[0]
+            photo_ext = os.path.splitext(os.path.basename(photo_path))[1]
+        
+            date = field_index(vlayer, 'datum posnetka')
+            if feature[field_delete]: 
+                counter_deleted += 1
+                sink.addFeature(feature, QgsFeatureSink.FastInsert)
+                photo_name = os.path.basename(photo_path)
+                dst = os.path.join(delete_folder, photo_name )
+                #copyfile(feature[field_path], dst)
+                #vlayer.deleteFeature(feature.id())
+            else:
+                counter += 1    
+                if feature[photo_type] == 'Strokovni':
+                    counter_docu += 1           
+                elif feature[photo_type] == 'Nedokumentarni':
+                    counter_nedocu += 1
+                elif feature[photo_type] == 'Delovni':
+                    counter_del += 1
+
+
+            # Stop the algorithm if cancel button has been clicked
+            if feedback.isCanceled():
+                break
+
+        #Remove  
+       
+        feedback.pushInfo('Št. vseh fotografij za izbrisat: %s' % str(counter_deleted))
+        feedback.pushInfo('Št. vseh fotografij dokumentarnih fotografij: %s' % str(counter_docu))
+        feedback.pushInfo('Št. vseh fotografij nedokumentarnih fotografij: %s' % str(counter_nedocu))
+        feedback.pushInfo('Št. vseh fotografij delovnih fotografij: %s' % str(counter_del))
+        """    
+        vlayer.startEditing()
+        for feature in features:
+            vlayer.changeAttributeValue(feature.id(),2, 1)
+        vlayer.commitChanges() 
+        """    
+
+        """
         fields = QgsFields()
         fields.append( QgsField( "fid", QVariant.Int ) )         #0
         fields.append( QgsField( "ime", QVariant.String ) )      #1
@@ -214,7 +350,7 @@ class PhotoGetList(QgsProcessingAlgorithm):
 
    
         self.listOfFiles = []
-        self.readDir(photos_folder, feedback)    
+           
 
 
         total = 100.0 / len(self.listOfFiles)
@@ -231,22 +367,11 @@ class PhotoGetList(QgsProcessingAlgorithm):
             newFeat.setAttribute("fid", iFeat)
             newFeat.setAttribute("ime", filename)
 
-            try:
-                with open(file_path, 'rb') as image_file:
-                    tags = exifread.process_file(image_file, stop_tag="EXIF DateTimeOriginal")
-                    date = tags["EXIF DateTimeOriginal"]     
-                    newFeat.setAttribute("datum posnetka", str(date)) #14
-            except:
-                date = ''
-            """
             with open(file_path, 'rb') as image_file:
-                feedback.pushInfo('3')
-                my_image = Image(image_file)           
-                feedback.pushInfo('4')      
-                if my_image.has_exif:
-                    date = my_image.datetime_original
-                    newFeat.setAttribute("datum posnetka", date)   #14   
-            """
+                tags = exifread.process_file(image_file, stop_tag="EXIF DateTimeOriginal")
+                date = tags["EXIF DateTimeOriginal"]     
+                newFeat.setAttribute("datum posnetka", str(date)) #14
+
             newFeat.setAttribute("pot", file_path)
             # Add a feature in the sink
             sink.addFeature(newFeat, QgsFeatureSink.FastInsert)
@@ -262,11 +387,14 @@ class PhotoGetList(QgsProcessingAlgorithm):
         # to uniquely identify the feature sink, and must be included in the
         # dictionary returned by the processAlgorithm function.
     
-        
+   
+        #feedback.pushInfo('Seznam že obstaja, posodabljam...')
 
 
 
         
+        return 
+        """
         self.dest_id = dest_id
         return {self.OUTPUT: dest_id}
 
