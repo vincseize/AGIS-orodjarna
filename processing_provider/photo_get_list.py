@@ -231,10 +231,13 @@ class PhotoGetList(QgsProcessingAlgorithm):
             newFeat.setAttribute("fid", iFeat)
             newFeat.setAttribute("ime", filename)
 
-            with open(file_path, 'rb') as image_file:
-                tags = exifread.process_file(image_file, stop_tag="EXIF DateTimeOriginal")
-                date = tags["EXIF DateTimeOriginal"]     
-                newFeat.setAttribute("datum posnetka", str(date)) #14
+            try:
+                with open(file_path, 'rb') as image_file:
+                    tags = exifread.process_file(image_file, stop_tag="EXIF DateTimeOriginal")
+                    date = tags["EXIF DateTimeOriginal"]     
+                    newFeat.setAttribute("datum posnetka", str(date)) #14
+            except:
+                date = ''
             """
             with open(file_path, 'rb') as image_file:
                 feedback.pushInfo('3')
