@@ -10,7 +10,7 @@
 *                                                                         *
 ***************************************************************************
 Matjaž Mori, ZVKDS CPA
-
+19.2.2020
 
 """
 
@@ -184,7 +184,7 @@ class StratiWordCatalog(QgsProcessingAlgorithm):
                 self.OPCIJE,
                 'Dodatne možnosti',
                 optional=True,
-                options=['Vključi datacijo','Vključi kvadrante', 'Vključi sektor'],
+                options=['Vključi datacijo','Vključi kvadrante', 'Vključi sektor', 'Vključi opažanja'],
                 allowMultiple=True,
                 defaultValue=None
                 )
@@ -327,6 +327,7 @@ class StratiWordCatalog(QgsProcessingAlgorithm):
             dolzina = feature['dolzina']
             sirina = feature['sirina']
             debelina = feature['debelina']
+
             barva = feature['barva']
             barva_munsel = feature['barva_munsel']
             konsistenca = feature['konsistenca']
@@ -353,6 +354,8 @@ class StratiWordCatalog(QgsProcessingAlgorithm):
             def p_vrsta(p):
                 if vrsta != None:
                     p.add_run(str(vrsta))
+                elif "IZNIČENO" in str(feature['opis']):
+                    pass
                 else:
                     value_error(se_id, 'vrsta', feedback)
 
@@ -372,30 +375,54 @@ class StratiWordCatalog(QgsProcessingAlgorithm):
                     feedback.reportError('Pri SE %s manjaka vrednost oblika_tloris!' % se_id, False)
                     pass
 
+            def dimensions(dimension):
+                string = str(dimension)
+                replaced = string.replace('.', ',')
+                p.add_run(replaced)
+
             def p_velikost(p):
-                if sirina == None and dolzina == None:
+                if (sirina == None or sirina == 'NULL') and (dolzina == None or dolzina == 'NULL'):
                     feedback.pushDebugInfo('Pri SE %s manjkajo dimenzije!' % se_id)
                     pass
-                elif sirina == None and oblika_tloris != 'ovalna':
-                    p.add_run(", velikosti ")
-                    p.add_run(str(dolzina))
-                    p.add_run(" m")
-                elif sirina == None and oblika_tloris == 'ovalna':
+
+                elif (sirina == None or sirina == 'NULL') and (oblika_tloris != 'ovalna' or oblika_tloris != 'okrogla'):
                     p.add_run(", premera ")
-                    p.add_run(str(dolzina))
+                    dimensions(dolzina)
                     p.add_run(" m")
+
+                elif (dolzina == None or dolzina == 'NULL') and (oblika_tloris != 'ovalna' or oblika_tloris != 'okrogla'):
+                    p.add_run(", premera ")
+                    dimensions(sirina)
+                    p.add_run(" m")
+        
                 else:
                     p.add_run(", velikosti ")
-                    p.add_run(str(dolzina))
+                    dimensions(dolzina)
                     p.add_run(" x ")
-                    p.add_run(str(sirina))
+                    dimensions(sirina)
                     p.add_run(" m")
 
             def p_debelina(p):
-                if debelina != None:
+                if debelina != None and vrsta in ('plast', 'mejna površina', 'polnilo') :
                     p.add_run(", debeline do ")
-                    p.add_run(str(debelina))
+                    dimensions(debelina)
                     p.add_run(" m")
+
+                elif debelina != None and vrsta == 'vkop' :
+                    p.add_run(", globine do ")
+                    dimensions(debelina)
+                    p.add_run(" m")    
+
+                elif debelina != None and vrsta == 'struktura' :
+                    p.add_run(", višine do ")
+                    dimensions(debelina)
+                    p.add_run(" m")    
+
+                elif debelina != None:
+                    p.add_run(", debeline do ")
+                    dimensions(debelina)
+                    p.add_run(" m")
+
                 else:
                     feedback.pushDebugInfo('Pri SE %s manjka debelina!' % se_id)
                     pass
@@ -497,10 +524,10 @@ class StratiWordCatalog(QgsProcessingAlgorithm):
                 if interpretacija != None:
                     p.add_run("Interpretacija: ")
                     p.add_run(interpretacija)
-                    p.add_run(".")
+                    p.add_run(".\n")
                 else:
                     p.add_run("Interpretacija: ")
-                    p.add_run("-.")
+                    p.add_run("-.\n")
 
             def p_datacija(p):
                 if datacija != None:
@@ -545,23 +572,25 @@ class StratiWordCatalog(QgsProcessingAlgorithm):
             paragraph_format.line_spacing = 1.5
             body_text = p.style.name
 
-            po = document.add_paragraph(style = 'Normal')
-            po.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY_LOW
-            paragraph_formatl = po.paragraph_format
-            paragraph_formatl.space_after = Pt(0)
-            paragraph_formatl.space_before = Pt(0)
-            paragraph_formatl.line_spacing = 1.5
-
+            if 3 in opcije:
+                po = document.add_paragraph(style = 'Normal')
+                po.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY_LOW
+                paragraph_formatl = po.paragraph_format
+                paragraph_formatl.space_after = Pt(0)
+                paragraph_formatl.space_before = Pt(0)
+                paragraph_formatl.line_spacing = 1.5
+            """
             pn = document.add_paragraph()
             pn.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY_LOW
             paragraph_formatv = pn.paragraph_format
             paragraph_formatv.space_after = Pt(0)
             paragraph_formatv.space_before = Pt(0)
             paragraph_formatv.line_spacing = 1.5
-
+            """
+    
             pi = document.add_paragraph()
-            pi.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY_LOW
-            paragraph_formatv = pn.paragraph_format
+            pi.alignment = WD_ALIGN_PARAGRAPH.LEFT
+            paragraph_formatv = pi.paragraph_format
             paragraph_formatv.space_after = Pt(0)
             paragraph_formatv.space_before = Pt(0)
             paragraph_formatv.line_spacing = 1.5
@@ -573,7 +602,7 @@ class StratiWordCatalog(QgsProcessingAlgorithm):
             if 1 in opcije:
                 p_kvadranti(p)
             p_vrsta(p)
-            p_dolocljivost_meje(p)
+            #p_dolocljivost_meje(p)
             p_oblika_tloris(p)
             p_velikost(p)
             p_debelina(p)
@@ -583,19 +612,19 @@ class StratiWordCatalog(QgsProcessingAlgorithm):
             p_barva(p)
             p_grobe_sestavine(p)
             p.add_run(".")
-
             #Print Body, description
-            p_opis(po)
+            if 3 in opcije:
+                p_opis(po)
 
-            p_najdbe(pn)
-            p_odstranitev(pn)
+            #p_najdbe(pn)
+            #p_odstranitev(pn)
 
             if 0 in opcije:
                 p_datacija(pi)
             if not sort_by_faze:
                 p_faza(pi)
             p_interpretacija(pi)
-
+            
 
         def povzetek_faze():
             if povzetek_by_faze:
@@ -607,8 +636,11 @@ class StratiWordCatalog(QgsProcessingAlgorithm):
                     po.add_run(faza)
                     list_se = []
                     for current, feature in enumerate(source.getFeatures()):
-                            sum_text = "%s SE %s, %s" %(feature['vrsta'], feature['se_id'], feature['interpretacija'])
-                            list_se.append(sum_text)
+                            if "IZNIČENO" in str(feature['opis']):
+                                pass
+                            else:
+                                sum_text = "SE %s, %s" %(feature['se_id'], feature['interpretacija'])
+                                list_se.append(sum_text)
 
                     p = document.add_paragraph(style = 'Normal')
                     p.add_run('; '.join(list_se))
@@ -650,10 +682,8 @@ class StratiWordCatalog(QgsProcessingAlgorithm):
                         if "IZNIČENO" in str(feature['opis']):
                             feedback.reportError('SE %s je bila izničena!' % feature['se_id'], False)
                             pass
-                        if feature['opis'] != None and feature['opis'] != NULL:
-                            print_se(feature)
                         else:
-                            pass
+                            print_se(feature)
 
         if sort_by_faze:
             print_faze()
