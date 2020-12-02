@@ -117,7 +117,9 @@ class PhotoGetList(QgsProcessingAlgorithm):
         help = ("""
             Izberemo mapo kjer so vse fotografije projekta. Fotografije so lahko v podmapah, ni pa potrebno.
 
-            Priporočljivo je izbrati mapo \"Fotoarhiv\", vse nove fotografije morajo biti v podmapi \"Začasno\"
+            Priporočljivo je izbrati mapo \"Fotoarhiv\", in vse fotografije shraniti v podmapi \"Začasno\".
+
+            Seznam fotografij shranimo kot .gpkg v mapo fotoarhiv.
             <h3></h3>
             <ul>
             </ul>
@@ -149,7 +151,7 @@ class PhotoGetList(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterFeatureSink(
                 self.OUTPUT,
-                self.tr('Files')
+                self.tr('Seznam fotografij')
             )
         )
 
@@ -203,7 +205,8 @@ class PhotoGetList(QgsProcessingAlgorithm):
         fields.append( QgsField( "izbriši", QVariant.Bool ) )    #17
         fields.append( QgsField( "datum posnetka", QVariant.DateTime ) )     #18
         fields.append( QgsField( "relativna pot", QVariant.String ) )     #19
-        fields.append( QgsField( "pot", QVariant.String ) )     #20
+        fields.append( QgsField( "originalno ime", QVariant.String ) )      #20
+        fields.append( QgsField( "pot", QVariant.String ) )     #21
 
 
         crsProject = QgsProject.instance().crs()        
@@ -229,7 +232,8 @@ class PhotoGetList(QgsProcessingAlgorithm):
             #Create new Feature
             newFeat = QgsFeature(fields)
             newFeat.setAttribute("fid", iFeat)
-            newFeat.setAttribute("ime", filename)
+            newFeat.setAttribute("ime", filename_w_ext)
+            newFeat.setAttribute("originalno ime", filename_w_ext)
 
             try:
                 with open(file_path, 'rb') as image_file:

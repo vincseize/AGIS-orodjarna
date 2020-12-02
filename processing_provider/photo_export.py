@@ -79,7 +79,7 @@ class PhotoExport(QgsProcessingAlgorithm):
         Returns the translated algorithm name, which should be used for any
         user-visible display of the algorithm name.
         """
-        return self.tr('Izvozi seznam fotografij v XLS')
+        return self.tr('Preimenuj in uredi fotografije')
 
     def group(self):
         """
@@ -109,9 +109,11 @@ class PhotoExport(QgsProcessingAlgorithm):
 
         help = ("""
             Izberemo mapo "Fotoarhiv"!
-            Orodje bo poiskalo geopaket s seznamom fotografij, preimenovalo fotografije, jih pospravilo v mape in sestavilo -xls datoteko Seznam fotografij. 
+            Orodje bo poiskalo geopaket s seznamom fotografij, preimenovalo fotografije in  jih pospravilo v ustrezne mape glede na žanr. 
             
             Mapa mora vsebovati le en geopaket!!
+            V fotoarhivu ne smejo obstajat mape Dokumentarni, Delovni..
+            
             <h3></h3>
             <ul>
             </ul>
@@ -172,7 +174,7 @@ class PhotoExport(QgsProcessingAlgorithm):
             for name in filenames:
                 file_path = os.path.join(dirpath, name)
                 extension = os.path.splitext(name)[1].lower()
-                if extension in ('.gpkg'):
+                if extension == '.gpkg':
                     photos_list_path = file_path 
                     layer_name = os.path.splitext(name)[0]
                     files_count = files_count + 1
@@ -234,28 +236,34 @@ class PhotoExport(QgsProcessingAlgorithm):
         features = vlayer.getFeatures(request)
 
  
+        no_type = []    
+        for feature in features:
+            if feature["žanr"] == NULL and feature["izbriši"] != True:
+                no_type.append(feature['ime'])    
+        if len(no_type) > 0:
+            raise Exception(str("Manjka žanr fotografij: %s" % no_type))
+
+       
+
 
 
         #Get unique values of "žanr" values
         photo_type = vlayer.fields().indexOf('žanr')
         types = vlayer.uniqueValues(photo_type)
-        if NULL in types:
+
+        photo_delete = vlayer.fields().indexOf('izbriši')
+        deleted_uniqe = vlayer.uniqueValues(photo_delete)
+
+        if True in deleted_uniqe:
             try:
                 delete_folder = os.path.join(photos_folder, 'Za izbrisat')
                 os.mkdir(delete_folder)
-                types.remove(NULL)
             except:
                 raise Exception("Mape %s ni bilo mogoče ustvariti" % delete_folder)
-        if '' in types:
-            try:
-                delete_folder = os.path.join(photos_folder, 'Za izbrisat')
-                os.mkdir(delete_folder)
-                types.remove(NULL)
-            except:
-                raise Exception("Mape %s ni bilo mogoče ustvariti" % delete_folder)
+ 
 
         for photo_type in types:
-            folder = os.path.join(photos_folder, photo_type)
+            folder = os.path.join(photos_folder, str(photo_type))
             try:
                 os.mkdir(folder)
             except:
@@ -273,6 +281,9 @@ class PhotoExport(QgsProcessingAlgorithm):
         feedback.pushInfo('Št. vseh fotografij: %s' % str(total))
 
 
+
+        vlayer.startEditing()
+        features = vlayer.getFeatures(request)
         for current, feature in enumerate(features):
             field_delete = field_index(vlayer, 'izbriši')
             field_path = field_index(vlayer, 'pot')
@@ -288,11 +299,21 @@ class PhotoExport(QgsProcessingAlgorithm):
                 sink.addFeature(feature, QgsFeatureSink.FastInsert)
                 photo_name = os.path.basename(photo_path)
                 dst = os.path.join(delete_folder, photo_name )
-                #copyfile(feature[field_path], dst)
-                #vlayer.deleteFeature(feature.id())
+                copyfile(feature[field_path], dst)
+                vlayer.deleteFeature(feature.id())
+             
             else:
                 counter += 1    
-                if feature[photo_type] == 'Strokovni':
+                folder_keep = os.path.join(photos_folder, str(feature[photo_type]))
+                new_name = str(project_code) + '_' + str(counter)
+                #new_name = str(project_code) + '_' + str(counter).zfill(4) + str(photo_ext)
+                new_file_name = str(project_code) + '_' + str(counter) + photo_ext
+                dst_keep = os.path.join(folder_keep, new_file_name)
+                copyfile(feature[field_path], dst_keep)
+
+                vlayer.changeAttributeValue(feature.id(), 1, str(new_name))
+
+                if feature[photo_type] == 'Strokovni':   
                     counter_docu += 1           
                 elif feature[photo_type] == 'Nedokumentarni':
                     counter_nedocu += 1
@@ -303,7 +324,7 @@ class PhotoExport(QgsProcessingAlgorithm):
             # Stop the algorithm if cancel button has been clicked
             if feedback.isCanceled():
                 break
-
+        vlayer.commitChanges()
         #Remove  
        
         feedback.pushInfo('Št. vseh fotografij za izbrisat: %s' % str(counter_deleted))
