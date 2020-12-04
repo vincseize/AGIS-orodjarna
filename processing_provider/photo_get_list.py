@@ -222,10 +222,38 @@ class PhotoGetList(QgsProcessingAlgorithm):
 
         total = 100.0 / len(self.listOfFiles)
 
+        files_list = []
+
+        for iFeat, file_path in enumerate(self.listOfFiles):  
+            try:
+                with open(file_path, 'rb') as image_file:
+                    tags = exifread.process_file(image_file, stop_tag="EXIF DateTimeOriginal")
+                    date = tags["EXIF DateTimeOriginal"]     
+            except:
+                date = ''
+
+            files_list.append({'file_path': str(file_path), 'date':date})
+
+             # A function that returns the 'year' value:
+        def myFunc(e):
+            return str(e['date'])
+        files_list.sort(key=myFunc)  
+
+        for iFeat, file_path in enumerate(files_list): 
+            date = file_path['date']
+            feedback.pushInfo(str(file_path['file_path']))
+            """
+            features = sorted(dest_id.getFeatures(), key="datum posnetka")
+            feedback.pushInfo(str('evo0'))
+            for a in dest_id.getFeatures():
+            
+            """
 
 
-        for iFeat, file_path in enumerate(self.listOfFiles):   
-            feedback.setProgress(int(iFeat * total))    
+        for iFeat, photo_file in enumerate(files_list):   
+            feedback.setProgress(int(iFeat * total))  
+            file_path = photo_file['file_path']
+            date = photo_file['date']
             filename_w_ext = os.path.basename(file_path)
             filename, file_extension = os.path.splitext(filename_w_ext)
             feedback.pushInfo(filename)
@@ -233,29 +261,16 @@ class PhotoGetList(QgsProcessingAlgorithm):
             newFeat = QgsFeature(fields)
             newFeat.setAttribute("fid", iFeat)
             newFeat.setAttribute("ime", filename_w_ext)
-            newFeat.setAttribute("originalno ime", filename_w_ext)
-
-            try:
-                with open(file_path, 'rb') as image_file:
-                    tags = exifread.process_file(image_file, stop_tag="EXIF DateTimeOriginal")
-                    date = tags["EXIF DateTimeOriginal"]     
-                    newFeat.setAttribute("datum posnetka", str(date)) #14
-            except:
-                date = ''
-            """
-            with open(file_path, 'rb') as image_file:
-                feedback.pushInfo('3')
-                my_image = Image(image_file)           
-                feedback.pushInfo('4')      
-                if my_image.has_exif:
-                    date = my_image.datetime_original
-                    newFeat.setAttribute("datum posnetka", date)   #14   
-            """
+            newFeat.setAttribute("originalno ime", filename_w_ext)      
+            newFeat.setAttribute("datum posnetka", str(date)) #14
             newFeat.setAttribute("pot", file_path)
             # Add a feature in the sink
             sink.addFeature(newFeat, QgsFeatureSink.FastInsert)
             countFiles=countFiles+1
      
+
+
+
 
         msgInfo=self.tr(str(countFiles) + " fotografij dodanih v seznam.")
         feedback.pushInfo(msgInfo)
