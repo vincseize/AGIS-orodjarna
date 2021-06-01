@@ -204,9 +204,8 @@ class PhotoGetList(QgsProcessingAlgorithm):
         fields.append( QgsField( "opombe", QVariant.String ) )     #16
         fields.append( QgsField( "izbriši", QVariant.Bool ) )    #17
         fields.append( QgsField( "datum posnetka", QVariant.DateTime ) )     #18
-        fields.append( QgsField( "relativna pot", QVariant.String ) )     #19
-        fields.append( QgsField( "originalno ime", QVariant.String ) )      #20
-        fields.append( QgsField( "pot", QVariant.String ) )     #21
+        fields.append( QgsField( "originalno ime", QVariant.String ) )      #19
+        fields.append( QgsField( "pot", QVariant.String ) )     #20
 
 
         crsProject = QgsProject.instance().crs()        
@@ -256,12 +255,12 @@ class PhotoGetList(QgsProcessingAlgorithm):
             date = photo_file['date']
             filename_w_ext = os.path.basename(file_path)
             filename, file_extension = os.path.splitext(filename_w_ext)
-            feedback.pushInfo(filename)
+            #feedback.pushInfo(filename)
             #Create new Feature
             newFeat = QgsFeature(fields)
             newFeat.setAttribute("fid", iFeat)
             newFeat.setAttribute("ime", filename_w_ext)
-            newFeat.setAttribute("originalno ime", filename_w_ext)      
+            newFeat.setAttribute("originalno ime", file_path)      
             newFeat.setAttribute("datum posnetka", str(date)) #14
             newFeat.setAttribute("pot", file_path)
             # Add a feature in the sink
@@ -295,7 +294,7 @@ class PhotoGetList(QgsProcessingAlgorithm):
         """
         output = QgsProcessingUtils.mapLayerFromString(self.dest_id, context)
         style = path('styles')/'Seznam fotografij.qml'
-        feedback.pushInfo(str(style))
+        #feedback.pushInfo(str(style))
 
         output.loadNamedStyle(str(style))
         output.triggerRepaint()
