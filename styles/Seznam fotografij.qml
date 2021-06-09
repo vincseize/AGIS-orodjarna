@@ -1,18 +1,26 @@
 <!DOCTYPE qgis PUBLIC 'http://mrcc.com/qgis.dtd' 'SYSTEM'>
-<qgis hasScaleBasedVisibilityFlag="0" minScale="1e+08" readOnly="0" version="3.10.8-A Coruña" styleCategories="AllStyleCategories" maxScale="0">
+<qgis maxScale="0" readOnly="0" version="3.16.7-Hannover" minScale="1e+08" hasScaleBasedVisibilityFlag="0" styleCategories="AllStyleCategories">
   <flags>
     <Identifiable>1</Identifiable>
     <Removable>1</Removable>
     <Searchable>1</Searchable>
   </flags>
+  <temporal accumulate="0" endExpression="" startField="" mode="0" startExpression="" durationUnit="min" durationField="" endField="" enabled="0" fixedDuration="0">
+    <fixedRange>
+      <start></start>
+      <end></end>
+    </fixedRange>
+  </temporal>
   <customproperties>
     <property key="dualview/previewExpressions">
       <value>COALESCE( "ime", '&lt;NULL>' )</value>
       <value>COALESCE( "ime", '&lt;NULL>' )</value>
       <value>COALESCE( "ime", '&lt;NULL>' )</value>
       <value>COALESCE( "ime", '&lt;NULL>' )</value>
+      <value>COALESCE( "ime", '&lt;NULL>' )</value>
+      <value>COALESCE( "ime", '&lt;NULL>' )</value>
     </property>
-    <property key="embeddedWidgets/count" value="0"/>
+    <property value="0" key="embeddedWidgets/count"/>
     <property key="variableNames"/>
     <property key="variableValues"/>
   </customproperties>
@@ -20,409 +28,404 @@
     <activeChecks/>
     <checkConfiguration/>
   </geometryOptions>
+  <legend type="default-vector"/>
+  <referencedLayers/>
   <fieldConfiguration>
-    <field name="fid">
+    <field configurationFlags="None" name="fid">
       <editWidget type="TextEdit">
         <config>
           <Option type="Map">
-            <Option type="bool" value="false" name="IsMultiline"/>
-            <Option type="bool" value="false" name="UseHtml"/>
+            <Option value="false" type="bool" name="IsMultiline"/>
+            <Option value="false" type="bool" name="UseHtml"/>
           </Option>
         </config>
       </editWidget>
     </field>
-    <field name="ime">
+    <field configurationFlags="None" name="ime">
       <editWidget type="TextEdit">
         <config>
           <Option type="Map">
-            <Option type="bool" value="false" name="IsMultiline"/>
-            <Option type="bool" value="false" name="UseHtml"/>
+            <Option value="false" type="bool" name="IsMultiline"/>
+            <Option value="false" type="bool" name="UseHtml"/>
           </Option>
         </config>
       </editWidget>
     </field>
-    <field name="sektor">
+    <field configurationFlags="None" name="sektor">
       <editWidget type="UniqueValues">
         <config>
           <Option type="Map">
-            <Option type="bool" value="true" name="Editable"/>
+            <Option value="true" type="bool" name="Editable"/>
           </Option>
         </config>
       </editWidget>
     </field>
-    <field name="kvadrant">
+    <field configurationFlags="None" name="kvadrant">
       <editWidget type="UniqueValues">
         <config>
           <Option type="Map">
-            <Option type="bool" value="true" name="Editable"/>
+            <Option value="true" type="bool" name="Editable"/>
           </Option>
         </config>
       </editWidget>
     </field>
-    <field name="sonda">
+    <field configurationFlags="None" name="sonda">
       <editWidget type="UniqueValues">
         <config>
           <Option type="Map">
-            <Option type="bool" value="true" name="Editable"/>
+            <Option value="true" type="bool" name="Editable"/>
           </Option>
         </config>
       </editWidget>
     </field>
-    <field name="SE">
+    <field configurationFlags="None" name="SE">
       <editWidget type="UniqueValues">
         <config>
           <Option type="Map">
-            <Option type="bool" value="true" name="Editable"/>
+            <Option value="true" type="bool" name="Editable"/>
           </Option>
         </config>
       </editWidget>
     </field>
-    <field name="PN">
+    <field configurationFlags="None" name="PN">
       <editWidget type="UniqueValues">
         <config>
           <Option type="Map">
-            <Option type="bool" value="true" name="Editable"/>
+            <Option value="true" type="bool" name="Editable"/>
           </Option>
         </config>
       </editWidget>
     </field>
-    <field name="FS">
+    <field configurationFlags="None" name="FS">
       <editWidget type="UniqueValues">
         <config>
           <Option type="Map">
-            <Option type="bool" value="true" name="Editable"/>
+            <Option value="true" type="bool" name="Editable"/>
           </Option>
         </config>
       </editWidget>
     </field>
-    <field name="VZ">
+    <field configurationFlags="None" name="VZ">
       <editWidget type="UniqueValues">
         <config>
           <Option type="Map">
-            <Option type="bool" value="true" name="Editable"/>
+            <Option value="true" type="bool" name="Editable"/>
           </Option>
         </config>
       </editWidget>
     </field>
-    <field name="FL">
+    <field configurationFlags="None" name="FL">
       <editWidget type="UniqueValues">
         <config>
           <Option type="Map">
-            <Option type="bool" value="true" name="Editable"/>
+            <Option value="true" type="bool" name="Editable"/>
           </Option>
         </config>
       </editWidget>
     </field>
-    <field name="opis">
+    <field configurationFlags="None" name="opis">
       <editWidget type="UniqueValues">
         <config>
           <Option type="Map">
-            <Option type="bool" value="true" name="Editable"/>
+            <Option value="true" type="bool" name="Editable"/>
           </Option>
         </config>
       </editWidget>
     </field>
-    <field name="pogled">
+    <field configurationFlags="None" name="pogled">
       <editWidget type="ValueMap">
         <config>
           <Option type="Map">
             <Option type="List" name="map">
               <Option type="Map">
-                <Option type="QString" value="S" name="Sever"/>
+                <Option value="S" type="QString" name="Sever"/>
               </Option>
               <Option type="Map">
-                <Option type="QString" value="J" name="Jug"/>
+                <Option value="J" type="QString" name="Jug"/>
               </Option>
               <Option type="Map">
-                <Option type="QString" value="V" name="Vzhod"/>
+                <Option value="V" type="QString" name="Vzhod"/>
               </Option>
               <Option type="Map">
-                <Option type="QString" value="Z" name="Zahod"/>
+                <Option value="Z" type="QString" name="Zahod"/>
               </Option>
               <Option type="Map">
-                <Option type="QString" value="SV" name="Severovzhod"/>
+                <Option value="SV" type="QString" name="Severovzhod"/>
               </Option>
               <Option type="Map">
-                <Option type="QString" value="SZ" name="Severozahod"/>
+                <Option value="SZ" type="QString" name="Severozahod"/>
               </Option>
               <Option type="Map">
-                <Option type="QString" value="JV" name="Jugovzhod"/>
+                <Option value="JV" type="QString" name="Jugovzhod"/>
               </Option>
               <Option type="Map">
-                <Option type="QString" value="JZ" name="Jugozahod"/>
+                <Option value="JZ" type="QString" name="Jugozahod"/>
               </Option>
             </Option>
           </Option>
         </config>
       </editWidget>
     </field>
-    <field name="vrsta">
+    <field configurationFlags="None" name="vrsta">
       <editWidget type="ValueMap">
         <config>
           <Option type="Map">
             <Option type="List" name="map">
               <Option type="Map">
-                <Option type="QString" value="T" name="Tloris"/>
+                <Option value="T" type="QString" name="Tloris"/>
               </Option>
               <Option type="Map">
-                <Option type="QString" value="P" name="Presek"/>
+                <Option value="P" type="QString" name="Presek"/>
               </Option>
               <Option type="Map">
-                <Option type="QString" value="SP" name="Stranski pogled"/>
+                <Option value="SP" type="QString" name="Stranski pogled"/>
               </Option>
             </Option>
           </Option>
         </config>
       </editWidget>
     </field>
-    <field name="oznake">
+    <field configurationFlags="None" name="oznake">
       <editWidget type="CheckBox">
         <config>
           <Option type="Map">
-            <Option type="QString" value="" name="CheckedState"/>
-            <Option type="QString" value="" name="UncheckedState"/>
+            <Option value="" type="QString" name="CheckedState"/>
+            <Option value="" type="QString" name="UncheckedState"/>
           </Option>
         </config>
       </editWidget>
     </field>
-    <field name="žanr">
+    <field configurationFlags="None" name="žanr">
       <editWidget type="ValueMap">
         <config>
           <Option type="Map">
             <Option type="List" name="map">
               <Option type="Map">
-                <Option type="QString" value="Strokovni" name="Strokovni"/>
+                <Option value="Strokovni" type="QString" name="Strokovni"/>
               </Option>
               <Option type="Map">
-                <Option type="QString" value="Delovni" name="Delovni"/>
+                <Option value="Delovni" type="QString" name="Delovni"/>
               </Option>
               <Option type="Map">
-                <Option type="QString" value="Nedokumentarni" name="Nedokumentarni"/>
+                <Option value="Nedokumentarni" type="QString" name="Nedokumentarni"/>
               </Option>
               <Option type="Map">
-                <Option type="QString" value="Dokumentarni" name="Dokumentarni"/>
+                <Option value="Dokumentarni" type="QString" name="Dokumentarni"/>
               </Option>
             </Option>
           </Option>
         </config>
       </editWidget>
     </field>
-    <field name="avtor">
+    <field configurationFlags="None" name="avtor">
       <editWidget type="UniqueValues">
         <config>
           <Option type="Map">
-            <Option type="bool" value="true" name="Editable"/>
+            <Option value="true" type="bool" name="Editable"/>
           </Option>
         </config>
       </editWidget>
     </field>
-    <field name="opombe">
+    <field configurationFlags="None" name="opombe">
       <editWidget type="UniqueValues">
         <config>
           <Option type="Map">
-            <Option type="bool" value="true" name="Editable"/>
+            <Option value="true" type="bool" name="Editable"/>
           </Option>
         </config>
       </editWidget>
     </field>
-    <field name="izbriši">
+    <field configurationFlags="None" name="izbriši">
       <editWidget type="CheckBox">
         <config>
           <Option type="Map">
-            <Option type="QString" value="" name="CheckedState"/>
-            <Option type="QString" value="" name="UncheckedState"/>
+            <Option value="" type="QString" name="CheckedState"/>
+            <Option value="" type="QString" name="UncheckedState"/>
           </Option>
         </config>
       </editWidget>
     </field>
-    <field name="datum posnetka">
+    <field configurationFlags="None" name="datum posnetka">
       <editWidget type="DateTime">
         <config>
           <Option type="Map">
-            <Option type="bool" value="true" name="allow_null"/>
-            <Option type="bool" value="true" name="calendar_popup"/>
-            <Option type="QString" value="yyyy-MM-dd HH:mm:ss" name="display_format"/>
-            <Option type="QString" value="yyyy-MM-dd HH:mm:ss" name="field_format"/>
-            <Option type="bool" value="false" name="field_iso_format"/>
+            <Option value="true" type="bool" name="allow_null"/>
+            <Option value="true" type="bool" name="calendar_popup"/>
+            <Option value="yyyy-MM-dd HH:mm:ss" type="QString" name="display_format"/>
+            <Option value="yyyy-MM-dd HH:mm:ss" type="QString" name="field_format"/>
+            <Option value="false" type="bool" name="field_iso_format"/>
           </Option>
         </config>
       </editWidget>
     </field>
-    <field name="relativna pot">
+    <field configurationFlags="None" name="originalno ime">
       <editWidget type="TextEdit">
         <config>
           <Option type="Map">
-            <Option type="bool" value="false" name="IsMultiline"/>
-            <Option type="bool" value="false" name="UseHtml"/>
+            <Option value="false" type="bool" name="IsMultiline"/>
+            <Option value="false" type="bool" name="UseHtml"/>
           </Option>
         </config>
       </editWidget>
     </field>
-    <field name="originalno ime">
-      <editWidget type="TextEdit">
-        <config>
-          <Option type="Map">
-            <Option type="bool" value="false" name="IsMultiline"/>
-            <Option type="bool" value="false" name="UseHtml"/>
-          </Option>
-        </config>
-      </editWidget>
-    </field>
-    <field name="pot">
+    <field configurationFlags="None" name="pot">
       <editWidget type="ExternalResource">
         <config>
           <Option type="Map">
-            <Option type="int" value="1" name="DocumentViewer"/>
-            <Option type="int" value="0" name="DocumentViewerHeight"/>
-            <Option type="int" value="0" name="DocumentViewerWidth"/>
-            <Option type="bool" value="false" name="FileWidget"/>
-            <Option type="bool" value="true" name="FileWidgetButton"/>
-            <Option type="QString" value="" name="FileWidgetFilter"/>
+            <Option value="1" type="int" name="DocumentViewer"/>
+            <Option value="0" type="int" name="DocumentViewerHeight"/>
+            <Option value="0" type="int" name="DocumentViewerWidth"/>
+            <Option value="false" type="bool" name="FileWidget"/>
+            <Option value="true" type="bool" name="FileWidgetButton"/>
+            <Option value="" type="QString" name="FileWidgetFilter"/>
             <Option type="Map" name="PropertyCollection">
-              <Option type="QString" value="" name="name"/>
-              <Option name="properties"/>
-              <Option type="QString" value="collection" name="type"/>
+              <Option value="" type="QString" name="name"/>
+              <Option type="invalid" name="properties"/>
+              <Option value="collection" type="QString" name="type"/>
             </Option>
-            <Option type="int" value="0" name="RelativeStorage"/>
-            <Option type="int" value="0" name="StorageMode"/>
+            <Option value="0" type="int" name="RelativeStorage"/>
+            <Option value="0" type="int" name="StorageMode"/>
           </Option>
         </config>
       </editWidget>
     </field>
   </fieldConfiguration>
   <aliases>
-    <alias field="fid" name="" index="0"/>
-    <alias field="ime" name="" index="1"/>
-    <alias field="sektor" name="" index="2"/>
-    <alias field="kvadrant" name="" index="3"/>
-    <alias field="sonda" name="" index="4"/>
-    <alias field="SE" name="" index="5"/>
-    <alias field="PN" name="" index="6"/>
-    <alias field="FS" name="" index="7"/>
-    <alias field="VZ" name="" index="8"/>
-    <alias field="FL" name="" index="9"/>
-    <alias field="opis" name="" index="10"/>
-    <alias field="pogled" name="" index="11"/>
-    <alias field="vrsta" name="" index="12"/>
-    <alias field="oznake" name="" index="13"/>
-    <alias field="žanr" name="" index="14"/>
-    <alias field="avtor" name="" index="15"/>
-    <alias field="opombe" name="" index="16"/>
-    <alias field="izbriši" name="Za izbrisat" index="17"/>
-    <alias field="datum posnetka" name="" index="18"/>
-    <alias field="relativna pot" name="" index="19"/>
-    <alias field="originalno ime" name="" index="20"/>
-    <alias field="pot" name="Fotografija" index="21"/>
+    <alias field="fid" index="0" name=""/>
+    <alias field="ime" index="1" name=""/>
+    <alias field="sektor" index="2" name=""/>
+    <alias field="kvadrant" index="3" name=""/>
+    <alias field="sonda" index="4" name=""/>
+    <alias field="SE" index="5" name=""/>
+    <alias field="PN" index="6" name=""/>
+    <alias field="FS" index="7" name=""/>
+    <alias field="VZ" index="8" name=""/>
+    <alias field="FL" index="9" name=""/>
+    <alias field="opis" index="10" name=""/>
+    <alias field="pogled" index="11" name=""/>
+    <alias field="vrsta" index="12" name=""/>
+    <alias field="oznake" index="13" name=""/>
+    <alias field="žanr" index="14" name=""/>
+    <alias field="avtor" index="15" name=""/>
+    <alias field="opombe" index="16" name=""/>
+    <alias field="izbriši" index="17" name="Za izbrisat"/>
+    <alias field="datum posnetka" index="18" name=""/>
+    <alias field="originalno ime" index="19" name=""/>
+    <alias field="pot" index="20" name="Fotografija"/>
   </aliases>
-  <excludeAttributesWMS/>
-  <excludeAttributesWFS/>
   <defaults>
-    <default applyOnUpdate="0" expression="" field="fid"/>
-    <default applyOnUpdate="0" expression="" field="ime"/>
-    <default applyOnUpdate="0" expression="" field="sektor"/>
-    <default applyOnUpdate="0" expression="" field="kvadrant"/>
-    <default applyOnUpdate="0" expression="" field="sonda"/>
-    <default applyOnUpdate="0" expression="" field="SE"/>
-    <default applyOnUpdate="0" expression="" field="PN"/>
-    <default applyOnUpdate="0" expression="" field="FS"/>
-    <default applyOnUpdate="0" expression="" field="VZ"/>
-    <default applyOnUpdate="0" expression="" field="FL"/>
-    <default applyOnUpdate="0" expression="" field="opis"/>
-    <default applyOnUpdate="0" expression="" field="pogled"/>
-    <default applyOnUpdate="0" expression="" field="vrsta"/>
-    <default applyOnUpdate="0" expression="" field="oznake"/>
-    <default applyOnUpdate="0" expression="" field="žanr"/>
-    <default applyOnUpdate="0" expression="" field="avtor"/>
-    <default applyOnUpdate="0" expression="" field="opombe"/>
-    <default applyOnUpdate="0" expression="" field="izbriši"/>
-    <default applyOnUpdate="0" expression="" field="datum posnetka"/>
-    <default applyOnUpdate="0" expression="" field="relativna pot"/>
-    <default applyOnUpdate="0" expression="" field="originalno ime"/>
-    <default applyOnUpdate="0" expression="" field="pot"/>
+    <default field="fid" expression="" applyOnUpdate="0"/>
+    <default field="ime" expression="" applyOnUpdate="0"/>
+    <default field="sektor" expression="" applyOnUpdate="0"/>
+    <default field="kvadrant" expression="" applyOnUpdate="0"/>
+    <default field="sonda" expression="" applyOnUpdate="0"/>
+    <default field="SE" expression="" applyOnUpdate="0"/>
+    <default field="PN" expression="" applyOnUpdate="0"/>
+    <default field="FS" expression="" applyOnUpdate="0"/>
+    <default field="VZ" expression="" applyOnUpdate="0"/>
+    <default field="FL" expression="" applyOnUpdate="0"/>
+    <default field="opis" expression="" applyOnUpdate="0"/>
+    <default field="pogled" expression="" applyOnUpdate="0"/>
+    <default field="vrsta" expression="" applyOnUpdate="0"/>
+    <default field="oznake" expression="" applyOnUpdate="0"/>
+    <default field="žanr" expression="" applyOnUpdate="0"/>
+    <default field="avtor" expression="" applyOnUpdate="0"/>
+    <default field="opombe" expression="" applyOnUpdate="0"/>
+    <default field="izbriši" expression="" applyOnUpdate="0"/>
+    <default field="datum posnetka" expression="" applyOnUpdate="0"/>
+    <default field="originalno ime" expression="" applyOnUpdate="0"/>
+    <default field="pot" expression="" applyOnUpdate="0"/>
   </defaults>
   <constraints>
-    <constraint field="fid" exp_strength="0" constraints="3" unique_strength="1" notnull_strength="1"/>
-    <constraint field="ime" exp_strength="0" constraints="0" unique_strength="0" notnull_strength="0"/>
-    <constraint field="sektor" exp_strength="0" constraints="0" unique_strength="0" notnull_strength="0"/>
-    <constraint field="kvadrant" exp_strength="0" constraints="0" unique_strength="0" notnull_strength="0"/>
-    <constraint field="sonda" exp_strength="0" constraints="0" unique_strength="0" notnull_strength="0"/>
-    <constraint field="SE" exp_strength="0" constraints="0" unique_strength="0" notnull_strength="0"/>
-    <constraint field="PN" exp_strength="0" constraints="0" unique_strength="0" notnull_strength="0"/>
-    <constraint field="FS" exp_strength="0" constraints="0" unique_strength="0" notnull_strength="0"/>
-    <constraint field="VZ" exp_strength="0" constraints="0" unique_strength="0" notnull_strength="0"/>
-    <constraint field="FL" exp_strength="0" constraints="0" unique_strength="0" notnull_strength="0"/>
-    <constraint field="opis" exp_strength="0" constraints="0" unique_strength="0" notnull_strength="0"/>
-    <constraint field="pogled" exp_strength="0" constraints="0" unique_strength="0" notnull_strength="0"/>
-    <constraint field="vrsta" exp_strength="0" constraints="0" unique_strength="0" notnull_strength="0"/>
-    <constraint field="oznake" exp_strength="0" constraints="0" unique_strength="0" notnull_strength="0"/>
-    <constraint field="žanr" exp_strength="0" constraints="0" unique_strength="0" notnull_strength="0"/>
-    <constraint field="avtor" exp_strength="0" constraints="0" unique_strength="0" notnull_strength="0"/>
-    <constraint field="opombe" exp_strength="0" constraints="0" unique_strength="0" notnull_strength="0"/>
-    <constraint field="izbriši" exp_strength="0" constraints="0" unique_strength="0" notnull_strength="0"/>
-    <constraint field="datum posnetka" exp_strength="0" constraints="0" unique_strength="0" notnull_strength="0"/>
-    <constraint field="relativna pot" exp_strength="0" constraints="0" unique_strength="0" notnull_strength="0"/>
-    <constraint field="originalno ime" exp_strength="0" constraints="0" unique_strength="0" notnull_strength="0"/>
-    <constraint field="pot" exp_strength="0" constraints="0" unique_strength="0" notnull_strength="0"/>
+    <constraint constraints="3" field="fid" notnull_strength="1" exp_strength="0" unique_strength="1"/>
+    <constraint constraints="0" field="ime" notnull_strength="0" exp_strength="0" unique_strength="0"/>
+    <constraint constraints="0" field="sektor" notnull_strength="0" exp_strength="0" unique_strength="0"/>
+    <constraint constraints="0" field="kvadrant" notnull_strength="0" exp_strength="0" unique_strength="0"/>
+    <constraint constraints="0" field="sonda" notnull_strength="0" exp_strength="0" unique_strength="0"/>
+    <constraint constraints="0" field="SE" notnull_strength="0" exp_strength="0" unique_strength="0"/>
+    <constraint constraints="0" field="PN" notnull_strength="0" exp_strength="0" unique_strength="0"/>
+    <constraint constraints="0" field="FS" notnull_strength="0" exp_strength="0" unique_strength="0"/>
+    <constraint constraints="0" field="VZ" notnull_strength="0" exp_strength="0" unique_strength="0"/>
+    <constraint constraints="0" field="FL" notnull_strength="0" exp_strength="0" unique_strength="0"/>
+    <constraint constraints="0" field="opis" notnull_strength="0" exp_strength="0" unique_strength="0"/>
+    <constraint constraints="0" field="pogled" notnull_strength="0" exp_strength="0" unique_strength="0"/>
+    <constraint constraints="0" field="vrsta" notnull_strength="0" exp_strength="0" unique_strength="0"/>
+    <constraint constraints="0" field="oznake" notnull_strength="0" exp_strength="0" unique_strength="0"/>
+    <constraint constraints="0" field="žanr" notnull_strength="0" exp_strength="0" unique_strength="0"/>
+    <constraint constraints="0" field="avtor" notnull_strength="0" exp_strength="0" unique_strength="0"/>
+    <constraint constraints="0" field="opombe" notnull_strength="0" exp_strength="0" unique_strength="0"/>
+    <constraint constraints="0" field="izbriši" notnull_strength="0" exp_strength="0" unique_strength="0"/>
+    <constraint constraints="0" field="datum posnetka" notnull_strength="0" exp_strength="0" unique_strength="0"/>
+    <constraint constraints="0" field="originalno ime" notnull_strength="0" exp_strength="0" unique_strength="0"/>
+    <constraint constraints="0" field="pot" notnull_strength="0" exp_strength="0" unique_strength="0"/>
   </constraints>
   <constraintExpressions>
-    <constraint exp="" field="fid" desc=""/>
-    <constraint exp="" field="ime" desc=""/>
-    <constraint exp="" field="sektor" desc=""/>
-    <constraint exp="" field="kvadrant" desc=""/>
-    <constraint exp="" field="sonda" desc=""/>
-    <constraint exp="" field="SE" desc=""/>
-    <constraint exp="" field="PN" desc=""/>
-    <constraint exp="" field="FS" desc=""/>
-    <constraint exp="" field="VZ" desc=""/>
-    <constraint exp="" field="FL" desc=""/>
-    <constraint exp="" field="opis" desc=""/>
-    <constraint exp="" field="pogled" desc=""/>
-    <constraint exp="" field="vrsta" desc=""/>
-    <constraint exp="" field="oznake" desc=""/>
-    <constraint exp="" field="žanr" desc=""/>
-    <constraint exp="" field="avtor" desc=""/>
-    <constraint exp="" field="opombe" desc=""/>
-    <constraint exp="" field="izbriši" desc=""/>
-    <constraint exp="" field="datum posnetka" desc=""/>
-    <constraint exp="" field="relativna pot" desc=""/>
-    <constraint exp="" field="originalno ime" desc=""/>
-    <constraint exp="" field="pot" desc=""/>
+    <constraint exp="" desc="" field="fid"/>
+    <constraint exp="" desc="" field="ime"/>
+    <constraint exp="" desc="" field="sektor"/>
+    <constraint exp="" desc="" field="kvadrant"/>
+    <constraint exp="" desc="" field="sonda"/>
+    <constraint exp="" desc="" field="SE"/>
+    <constraint exp="" desc="" field="PN"/>
+    <constraint exp="" desc="" field="FS"/>
+    <constraint exp="" desc="" field="VZ"/>
+    <constraint exp="" desc="" field="FL"/>
+    <constraint exp="" desc="" field="opis"/>
+    <constraint exp="" desc="" field="pogled"/>
+    <constraint exp="" desc="" field="vrsta"/>
+    <constraint exp="" desc="" field="oznake"/>
+    <constraint exp="" desc="" field="žanr"/>
+    <constraint exp="" desc="" field="avtor"/>
+    <constraint exp="" desc="" field="opombe"/>
+    <constraint exp="" desc="" field="izbriši"/>
+    <constraint exp="" desc="" field="datum posnetka"/>
+    <constraint exp="" desc="" field="originalno ime"/>
+    <constraint exp="" desc="" field="pot"/>
   </constraintExpressions>
   <expressionfields/>
   <attributeactions>
-    <defaultAction key="Canvas" value="{00000000-0000-0000-0000-000000000000}"/>
-    <actionsetting notificationMessage="" type="5" id="{935ca84f-cdfe-476f-b3d1-57e697c79b75}" capture="0" shortTitle="Odpri sliko" action="[%pot%]" isEnabledOnlyWhenEditable="0" name="Odpri sliko" icon="">
-      <actionScope id="Field"/>
+    <defaultAction value="{00000000-0000-0000-0000-000000000000}" key="Canvas"/>
+    <actionsetting id="{e2091ed9-e0d3-4277-8816-899a530b21e2}" capture="0" isEnabledOnlyWhenEditable="0" shortTitle="Odpri sliko" type="5" name="Odpri sliko" action="[%pot%]" notificationMessage="" icon="">
       <actionScope id="Layer"/>
-      <actionScope id="Feature"/>
+      <actionScope id="Field"/>
       <actionScope id="Canvas"/>
+      <actionScope id="Feature"/>
+    </actionsetting>
+    <actionsetting id="{66761b74-6cdd-4cbc-b203-c02c31fe1189}" capture="0" isEnabledOnlyWhenEditable="0" shortTitle="" type="1" name="Kopiraj sliko" action="from io import BytesIO&#xd;&#xa;import win32clipboard&#xd;&#xa;from PIL import Image&#xd;&#xa;&#xd;&#xa;def send_to_clipboard(clip_type, data):&#xd;&#xa;    win32clipboard.OpenClipboard()&#xd;&#xa;    win32clipboard.EmptyClipboard()&#xd;&#xa;    win32clipboard.SetClipboardData(clip_type, data)&#xd;&#xa;    win32clipboard.CloseClipboard()&#xd;&#xa;filepath = &quot;[% replace( &quot;pot&quot;, '\\', '\\\\')%]&quot;&#xd;&#xa;image = Image.open(filepath)&#xd;&#xa;output = BytesIO()&#xd;&#xa;image.convert(&quot;RGB&quot;).save(output, &quot;BMP&quot;)&#xd;&#xa;data = output.getvalue()[14:]&#xd;&#xa;output.close()&#xd;&#xa;&#xd;&#xa;send_to_clipboard(win32clipboard.CF_DIB, data)&#xd;&#xa;&#xd;&#xa;" notificationMessage="2" icon="">
+      <actionScope id="Layer"/>
+      <actionScope id="Field"/>
+      <actionScope id="Canvas"/>
+      <actionScope id="Feature"/>
+    </actionsetting>
+    <actionsetting id="{e6b7fada-bf2e-4fa8-8a44-f546f4720203}" capture="0" isEnabledOnlyWhenEditable="0" shortTitle="" type="1" name="Kopiraj opis slike v odložišče" action="from PyQt5.Qt import QApplication&#xd;&#xa;clipboard = QApplication.clipboard()&#xd;&#xa;clipboard.setText(&quot;[% &quot;opis&quot;  || 'Pogled proti ' ||  &quot;pogled&quot;  || '. (foto ' ||   &quot;avtor&quot;  ||  ')'%]&quot;) " notificationMessage="" icon="">
+      <actionScope id="Canvas"/>
+      <actionScope id="Feature"/>
     </actionsetting>
   </attributeactions>
-  <attributetableconfig sortOrder="0" sortExpression="&quot;date_taken&quot;" actionWidgetStyle="dropDown">
+  <attributetableconfig sortExpression="&quot;date_taken&quot;" actionWidgetStyle="dropDown" sortOrder="0">
     <columns>
-      <column hidden="0" type="field" width="35" name="fid"/>
-      <column hidden="0" type="field" width="283" name="ime"/>
-      <column hidden="0" type="field" width="-1" name="sektor"/>
-      <column hidden="0" type="field" width="154" name="kvadrant"/>
-      <column hidden="0" type="field" width="-1" name="sonda"/>
-      <column hidden="0" type="field" width="-1" name="SE"/>
-      <column hidden="0" type="field" width="-1" name="PN"/>
-      <column hidden="0" type="field" width="-1" name="FS"/>
-      <column hidden="0" type="field" width="-1" name="opis"/>
-      <column hidden="0" type="field" width="-1" name="pogled"/>
-      <column hidden="0" type="field" width="-1" name="vrsta"/>
-      <column hidden="0" type="field" width="-1" name="oznake"/>
-      <column hidden="0" type="field" width="-1" name="žanr"/>
-      <column hidden="0" type="field" width="-1" name="avtor"/>
-      <column hidden="0" type="field" width="-1" name="opombe"/>
+      <column hidden="0" type="field" name="fid" width="35"/>
+      <column hidden="0" type="field" name="ime" width="283"/>
+      <column hidden="0" type="field" name="sektor" width="-1"/>
+      <column hidden="0" type="field" name="kvadrant" width="154"/>
+      <column hidden="0" type="field" name="sonda" width="-1"/>
+      <column hidden="0" type="field" name="SE" width="-1"/>
+      <column hidden="0" type="field" name="PN" width="-1"/>
+      <column hidden="0" type="field" name="FS" width="-1"/>
+      <column hidden="0" type="field" name="opis" width="-1"/>
+      <column hidden="0" type="field" name="pogled" width="-1"/>
+      <column hidden="0" type="field" name="vrsta" width="-1"/>
+      <column hidden="0" type="field" name="oznake" width="-1"/>
+      <column hidden="0" type="field" name="žanr" width="-1"/>
+      <column hidden="0" type="field" name="avtor" width="-1"/>
+      <column hidden="0" type="field" name="opombe" width="-1"/>
       <column hidden="0" type="actions" width="-1"/>
-      <column hidden="0" type="field" width="-1" name="VZ"/>
-      <column hidden="0" type="field" width="-1" name="FL"/>
-      <column hidden="0" type="field" width="-1" name="izbriši"/>
-      <column hidden="0" type="field" width="-1" name="datum posnetka"/>
-      <column hidden="0" type="field" width="-1" name="relativna pot"/>
-      <column hidden="0" type="field" width="-1" name="pot"/>
-      <column hidden="0" type="field" width="119" name="originalno ime"/>
+      <column hidden="0" type="field" name="VZ" width="-1"/>
+      <column hidden="0" type="field" name="FL" width="-1"/>
+      <column hidden="0" type="field" name="izbriši" width="-1"/>
+      <column hidden="0" type="field" name="datum posnetka" width="-1"/>
+      <column hidden="0" type="field" name="pot" width="-1"/>
+      <column hidden="0" type="field" name="originalno ime" width="119"/>
     </columns>
   </attributetableconfig>
   <conditionalstyles>
@@ -455,34 +458,34 @@ def my_form_open(dialog, layer, feature):
   <editorlayout>tablayout</editorlayout>
   <attributeEditorForm>
     <attributeEditorContainer visibilityExpression="" visibilityExpressionEnabled="0" columnCount="2" showLabel="1" name="Metadata" groupBox="0">
-      <attributeEditorField showLabel="1" name="ime" index="1"/>
-      <attributeEditorField showLabel="1" name="avtor" index="15"/>
-      <attributeEditorField showLabel="1" name="datum posnetka" index="18"/>
-      <attributeEditorField showLabel="1" name="opombe" index="16"/>
+      <attributeEditorField showLabel="1" index="1" name="ime"/>
+      <attributeEditorField showLabel="1" index="15" name="avtor"/>
+      <attributeEditorField showLabel="1" index="18" name="datum posnetka"/>
+      <attributeEditorField showLabel="1" index="16" name="opombe"/>
       <attributeEditorContainer visibilityExpression="" visibilityExpressionEnabled="0" columnCount="1" showLabel="1" name="Lokacija" groupBox="1">
-        <attributeEditorField showLabel="1" name="sektor" index="2"/>
-        <attributeEditorField showLabel="1" name="kvadrant" index="3"/>
-        <attributeEditorField showLabel="1" name="sonda" index="4"/>
+        <attributeEditorField showLabel="1" index="2" name="sektor"/>
+        <attributeEditorField showLabel="1" index="3" name="kvadrant"/>
+        <attributeEditorField showLabel="1" index="4" name="sonda"/>
       </attributeEditorContainer>
       <attributeEditorContainer visibilityExpression="" visibilityExpressionEnabled="0" columnCount="2" showLabel="1" name="Tip" groupBox="1">
-        <attributeEditorField showLabel="1" name="žanr" index="14"/>
-        <attributeEditorField showLabel="1" name="pogled" index="11"/>
-        <attributeEditorField showLabel="1" name="vrsta" index="12"/>
-        <attributeEditorField showLabel="1" name="oznake" index="13"/>
-        <attributeEditorField showLabel="1" name="izbriši" index="17"/>
+        <attributeEditorField showLabel="1" index="14" name="žanr"/>
+        <attributeEditorField showLabel="1" index="11" name="pogled"/>
+        <attributeEditorField showLabel="1" index="12" name="vrsta"/>
+        <attributeEditorField showLabel="1" index="13" name="oznake"/>
+        <attributeEditorField showLabel="1" index="17" name="izbriši"/>
       </attributeEditorContainer>
     </attributeEditorContainer>
     <attributeEditorContainer visibilityExpression="" visibilityExpressionEnabled="0" columnCount="3" showLabel="1" name="Stratigrafija" groupBox="0">
-      <attributeEditorField showLabel="1" name="SE" index="5"/>
-      <attributeEditorField showLabel="1" name="FS" index="7"/>
+      <attributeEditorField showLabel="1" index="5" name="SE"/>
+      <attributeEditorField showLabel="1" index="7" name="FS"/>
       <attributeEditorContainer visibilityExpression="" visibilityExpressionEnabled="0" columnCount="1" showLabel="1" name="" groupBox="1">
-        <attributeEditorField showLabel="1" name="PN" index="6"/>
-        <attributeEditorField showLabel="1" name="VZ" index="8"/>
-        <attributeEditorField showLabel="1" name="FL" index="9"/>
+        <attributeEditorField showLabel="1" index="6" name="PN"/>
+        <attributeEditorField showLabel="1" index="8" name="VZ"/>
+        <attributeEditorField showLabel="1" index="9" name="FL"/>
       </attributeEditorContainer>
     </attributeEditorContainer>
-    <attributeEditorField showLabel="1" name="opis" index="10"/>
-    <attributeEditorField showLabel="1" name="pot" index="21"/>
+    <attributeEditorField showLabel="1" index="10" name="opis"/>
+    <attributeEditorField showLabel="1" index="20" name="pot"/>
   </attributeEditorForm>
   <editable>
     <field name="FL" editable="1"/>
@@ -512,32 +515,33 @@ def my_form_open(dialog, layer, feature):
     <field name="žanr" editable="1"/>
   </editable>
   <labelOnTop>
-    <field labelOnTop="0" name="FL"/>
-    <field labelOnTop="0" name="FS"/>
-    <field labelOnTop="0" name="PN"/>
-    <field labelOnTop="0" name="SE"/>
-    <field labelOnTop="0" name="VZ"/>
-    <field labelOnTop="0" name="avtor"/>
-    <field labelOnTop="0" name="date_taken"/>
-    <field labelOnTop="0" name="datum posnetka"/>
-    <field labelOnTop="0" name="delete"/>
-    <field labelOnTop="0" name="fid"/>
-    <field labelOnTop="0" name="ime"/>
-    <field labelOnTop="0" name="izbriši"/>
-    <field labelOnTop="0" name="kvadrant"/>
-    <field labelOnTop="0" name="opis"/>
-    <field labelOnTop="0" name="opombe"/>
-    <field labelOnTop="0" name="originalno ime"/>
-    <field labelOnTop="0" name="oznake"/>
-    <field labelOnTop="0" name="path"/>
-    <field labelOnTop="0" name="pogled"/>
-    <field labelOnTop="0" name="pot"/>
-    <field labelOnTop="0" name="relativna pot"/>
-    <field labelOnTop="0" name="sektor"/>
-    <field labelOnTop="0" name="sonda"/>
-    <field labelOnTop="0" name="vrsta"/>
-    <field labelOnTop="0" name="žanr"/>
+    <field name="FL" labelOnTop="0"/>
+    <field name="FS" labelOnTop="0"/>
+    <field name="PN" labelOnTop="0"/>
+    <field name="SE" labelOnTop="0"/>
+    <field name="VZ" labelOnTop="0"/>
+    <field name="avtor" labelOnTop="0"/>
+    <field name="date_taken" labelOnTop="0"/>
+    <field name="datum posnetka" labelOnTop="0"/>
+    <field name="delete" labelOnTop="0"/>
+    <field name="fid" labelOnTop="0"/>
+    <field name="ime" labelOnTop="0"/>
+    <field name="izbriši" labelOnTop="0"/>
+    <field name="kvadrant" labelOnTop="0"/>
+    <field name="opis" labelOnTop="0"/>
+    <field name="opombe" labelOnTop="0"/>
+    <field name="originalno ime" labelOnTop="0"/>
+    <field name="oznake" labelOnTop="0"/>
+    <field name="path" labelOnTop="0"/>
+    <field name="pogled" labelOnTop="0"/>
+    <field name="pot" labelOnTop="0"/>
+    <field name="relativna pot" labelOnTop="0"/>
+    <field name="sektor" labelOnTop="0"/>
+    <field name="sonda" labelOnTop="0"/>
+    <field name="vrsta" labelOnTop="0"/>
+    <field name="žanr" labelOnTop="0"/>
   </labelOnTop>
+  <dataDefinedFieldProperties/>
   <widgets/>
   <previewExpression>COALESCE( "ime", '&lt;NULL>' )</previewExpression>
   <mapTip></mapTip>
