@@ -23,8 +23,9 @@ class Provider(QgsProcessingProvider):
         self.addAlgorithm(se_dmv())
         self.addAlgorithm(se_textures())
         self.addAlgorithm(check_raster_sources())
-        self.addAlgorithm(PhotoGetList())
         self.addAlgorithm(PhotoExport())
+        self.addAlgorithm(PhotoGetList())
+
 
     def id(self):
         return 'agis_toolbox'

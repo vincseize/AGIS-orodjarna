@@ -86,7 +86,7 @@ class PhotoGetList(QgsProcessingAlgorithm):
         Returns the translated algorithm name, which should be used for any
         user-visible display of the algorithm name.
         """
-        return self.tr('Pripravi seznam fotografij')
+        return self.tr('01 Pripravi seznam fotografij')
 
     def group(self):
         """

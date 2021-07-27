@@ -323,7 +323,7 @@ class StratiWordCatalog(QgsProcessingAlgorithm):
             sektor = feature['sektor']
             kvadrant = feature['kvadrant']
             vrsta_posega = feature['vrsta_posega']
-            obllika_profil = feature['obllika_profil']
+            oblika_profil = feature['obllika_profil']
             dolzina = feature['dolzina']
             sirina = feature['sirina']
             debelina = feature['debelina']
@@ -341,7 +341,8 @@ class StratiWordCatalog(QgsProcessingAlgorithm):
             odstranitev = feature['odstranitev_se']
             datacija = feature['datacija']
 
-
+            
+           
             #define body parts
             def p_se_id(p):
                 if se_id != None:
@@ -354,6 +355,7 @@ class StratiWordCatalog(QgsProcessingAlgorithm):
             def p_vrsta(p):
                 if vrsta != None:
                     p.add_run(str(vrsta))
+                    p.add_run(" ")
                 elif "IZNIČENO" in str(feature['opis']):
                     pass
                 else:
@@ -366,14 +368,28 @@ class StratiWordCatalog(QgsProcessingAlgorithm):
                 else:
                     feedback.reportError('Pri SE %s manjaka vrednost dolocljivost_meje!' % se_id, False)
                     pass
-
+                      
             def p_oblika_tloris(p):
-                if oblika_tloris != None:
-                    p.add_run("; oblika v tlorisu: ")
+                if oblika_tloris == oblika_profil and oblika_tloris != None:
                     p.add_run(str(oblika_tloris))
+                    p.add_run(" oblika v tlorisu in preseku")
+                if oblika_profil != oblika_tloris and oblika_tloris != None:          
+                    p.add_run(str(oblika_tloris))
+                    p.add_run(" oblika v tlorisu")
                 else:
                     feedback.reportError('Pri SE %s manjaka vrednost oblika_tloris!' % se_id, False)
                     pass
+
+            def p_oblika_profil(p):
+                if oblika_profil != oblika_tloris and oblika_profil != None:      
+                    if oblika_tloris != None:
+                        p.add_run(" in ")
+                    p.add_run(str(oblika_profil))
+                    p.add_run(" oblika v preseku")
+                else:
+                    feedback.pushDebugInfo('Pri SE %s manjka oblika v preseku!' % se_id)
+                    pass
+
 
             def dimensions(dimension):
                 string = str(dimension)
@@ -427,36 +443,31 @@ class StratiWordCatalog(QgsProcessingAlgorithm):
                     feedback.pushDebugInfo('Pri SE %s manjka debelina!' % se_id)
                     pass
 
-            def p_obllika_profil(p):
-                if obllika_profil != None:
-                    p.add_run("; oblika v preseku ")
-                    p.add_run(str(obllika_profil))
-                else:
-                    feedback.pushDebugInfo('Pri SE %s manjka oblika v preseku!' % se_id)
-                    pass
 
             def p_konsistenca(p):
                 if konsistenca != None:
-                    p.add_run("; konsistenca: ")
+                    #p.add_run("; konsistenca: ")
                     p.add_run(str(konsistenca))
+                    p.add_run(" ")
                 else:
                     pass
 
             def p_tekstura(p):
                 if tekstura != None:
-                    p.add_run("; tekstura: ")
+                    #p.add_run("; tekstura: ")
                     p.add_run(str(tekstura))
+                    p.add_run(" ")
                 else:
                     pass
 
             def p_barva(p):
                 if barva != None:
-                    p.add_run("; barva: ")
+                    #p.add_run("; barva: ")
                     p.add_run(str(barva))
                     if barva_munsel != None:
                         p.add_run(' (')
                         p.add_run(str(barva_munsel))
-                        p.add_run(')')
+                        p.add_run('), ')
                 elif barva == None and vrsta in ('plast', 'polnilo'):
                     feedback.reportError('Pri SE %s manjaka barva!' % se_id, False)
                     pass
@@ -465,9 +476,10 @@ class StratiWordCatalog(QgsProcessingAlgorithm):
 
             def p_grobe_sestavine(p):
                 if grobe_sestavine != None or grobe_sestavine != NULL:
-                    p.add_run("; grobe sestavine: ")
+                    p.add_run("z/s ")
                     sest = grobe_sestavine.replace('\n', ', ')
                     p.add_run(str(sest))
+                    p.add_run(" ")
                 else:
                     pass
 
@@ -554,7 +566,7 @@ class StratiWordCatalog(QgsProcessingAlgorithm):
                     pass
 
             def p_enaka(p):
-                if sektort != None:
+                if sektor != None:
                     p.add_run("Enačena z ")
                     p.add_run(enaka)
                     p.add_run(". ")
@@ -601,17 +613,26 @@ class StratiWordCatalog(QgsProcessingAlgorithm):
                 p_sektor(p)
             if 1 in opcije:
                 p_kvadranti(p)
-            p_vrsta(p)
+            
             #p_dolocljivost_meje(p)
+
+            p_barva(p)
+            p_konsistenca(p)
+            p_vrsta(p)
+            p_tekstura(p)
+            p_grobe_sestavine(p)
+
             p_oblika_tloris(p)
+            p_oblika_profil(p)
+        
             p_velikost(p)
             p_debelina(p)
-            p_obllika_profil(p)
-            p_konsistenca(p)
-            p_tekstura(p)
-            p_barva(p)
-            p_grobe_sestavine(p)
+
+            
             p.add_run(".")
+
+
+
             #Print Body, description
             if 3 in opcije:
                 p_opis(po)
@@ -621,8 +642,10 @@ class StratiWordCatalog(QgsProcessingAlgorithm):
 
             if 0 in opcije:
                 p_datacija(pi)
+            """"
             if not sort_by_faze:
                 p_faza(pi)
+            """
             p_interpretacija(pi)
             
 
@@ -651,7 +674,7 @@ class StratiWordCatalog(QgsProcessingAlgorithm):
             povzetek_faze()
             for current, feature in enumerate(source.getFeatures()):
                 feedback.setProgress(int(current * total))
-                feedback.pushInfo('Zapisujem SE %s' % se_id)
+                feedback.pushInfo('Zapisujem SE %s' % feature['se_id'])
                 if "IZNIČENO" in str(feature['opis']):
                     feedback.reportError('SE %s je bila izničena!' % feature['se_id'], False)
                     pass
